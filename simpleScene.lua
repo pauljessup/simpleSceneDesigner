@@ -1,0 +1,122 @@
+--this allows people to move this file + binser to other directories
+--and not have to update the file by hand, etc.
+local folderOfThisFile = (...):match("(.-)[^%.]+$")
+local function drawSort(a,b) return a.y+a.h < b.y+b.h end
+
+return {
+            sceneTypes={},
+            layerTypes={},
+            name="",
+            objectTypes={},
+            layers={},
+            objects={},
+            editing=false,
+            path = love.filesystem.getSource(),
+            binser=require(folderOfThisFile .. "binser"),
+            cooldown=0.0, --so mousepresses don't repeat a ton.
+            setScale=function(self, scalex, scaley)
+                --mostly for mouse functions.
+                self.scale={x=scalex, y=scaley}
+            end,
+            addSceneType=function(self, type)
+
+            end,
+            addObjectType=function(self, type)
+                self.objectTypes[type.type]=type
+            end,
+            addLayerType=function(self, type)
+                self.layerTypes[type.type]=type
+            end,
+            newScene=function(self, name)
+                self:clean()
+                self.name=name
+            end,
+            clean=function(self)
+                for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
+                for i=#self.obejcts, -1 do self.objects[i]=nil end self.objects={}
+            end,
+            load=function(self, data)
+                local data, len=binser.readFile(self.path .. "/" .. self.name)
+                self:clean()
+                self.layers=data.layers 
+                self.objects=data.objects
+            end,
+            save=function(self)
+                --serialize it and write to a file
+                binser.writeFile(self.path .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
+            end,
+            addLayer=function(self, data)
+                self.layers[#self.layers+1]=data
+            end,
+            addObject=function(self, data)
+                self.objects[#self.objects+1]=data
+            end,
+            update=function(self, dt)
+                for il, layer in ipairs(self.layers) do 
+                    local type=self.layerTypes[layer.type]
+                    if type.update~=nil then type:update(layer, self.editing, dt) end
+                end
+                for ob, object in ipairs(self.objects) do 
+                    local type=self.objectTypes[object.type]
+                    if type.update~=nil then type:update(object, self.editing, dt) end                    
+                end
+                if self.editing==true then
+                    --do editing update stuff here, with mouse, etc.
+                end
+            end,
+            drawButton=function(self)
+                --draw all the editor buttons on the main screen.
+            end,
+            drawMsgBox=function(self)
+                --this draws the mssg box when adding layer or dropping an object
+                --so that you can specify additional variables, based on a vars variable
+                --added when creating the object type or the layer type or the scene type.
+            end,
+            drawIcon=function(self, x, y, obj)
+                --draw an object icon at x/y
+                --for selecting and dropping objects.
+            end,
+            drawObjects=function(self, layer, x, y)
+                --zsorting
+                local zsort={}
+                for i,v in ipairs(self.objects) do
+                    zsort[#zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
+                end
+                table.sort(zsort, drawSort)
+                for i,v in ipairs(zsort) do
+                    local object=self.objects[v.id]
+                    local type=self.objectTypes[object.type]
+                    if type.draw~=nil then type:draw(object, x, y, self.editing) end                    
+                end
+            end,
+            drawLayer=function(self, x, y, layer)
+                --if it's passing the layer number...
+                if type(layer)~="table" then layer=self.layers[layer] end
+                local type=self.layerTypes[layer.type]
+                if type.draw~=nil then
+                    type:draw(layer, x, y, self.editing)
+                else
+                    --if there is no draw function and there is an image, just draw the image relative to camera coords.
+                    if layer.image~=nil then
+                        love.graphics.draw(layer.image, x, y)
+                    end
+                end
+                self:drawObjects(il, x, y)   
+            end,
+            draw=function(self, x, y)
+                if x==nil then x=0 end
+                if y==nil then y=0 end
+
+                love.graphics.scale(self.scale.x, self.scale.y)
+                for il,layer in ipairs(self.layers) do 
+                        self:drawLayer(x, y, layer)
+                end
+            end,
+            ------------------EDITOR FUNCTIONALITY-----------------------
+            drawEditor=function(self, scalex, scaley)
+
+            end,
+            updateEditor=function(self, scalex, scaley)
+
+            end,
+}
