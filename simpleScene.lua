@@ -20,6 +20,16 @@ return {
                 self.windowColors.background=background
                 self.windowColors.border=border 
            end,
+           drawWindow=function(self, window)
+                local oldColor={}
+                oldColor[1], oldColor[2], oldColor[3], oldColor[4]=love.graphics.getColor()
+                local b, o=self.windowColors.background, self.windowColors.border
+                love.graphics.setColor(b[1], b[2], b[3], b[4])
+                love.graphics.rectangle("fill", window.x, window.y, window.w, window.h)
+                love.graphics.setColor(o[1], o[2], o[3], o[4])
+                love.graphics.rectangle("line", window.x, window.y, window.w, window.h)
+                love.graphics.setColor(oldColor[1], oldColor[2], oldColor[3], oldColor[4])
+           end,
            setScale=function(self, scalex, scaley)
                 --mostly for mouse functions.
                 self.scale={x=scalex, y=scaley}
@@ -106,9 +116,6 @@ return {
                         love.graphics.draw(type.icon, object.x+x, object.y+y)
                     end                    
                 end
-            end,
-            drawWindow=function(self, x, y, h, w)
-
             end,
             drawLayer=function(self, x, y, layer)
                 --if it's passing the layer number...
