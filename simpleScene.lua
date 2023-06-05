@@ -53,6 +53,8 @@ return {
                 local oldColor={}
                 oldColor[1], oldColor[2], oldColor[3], oldColor[4]=love.graphics.getColor()
                 local b, o=self.windowColors.background, self.windowColors.border
+                if window.border then o=window.border end 
+                if window.background then b=window.background end
                 love.graphics.setColor(b[1], b[2], b[3], b[4])
                 love.graphics.rectangle("fill", window.x, window.y, window.w, window.h)
                 love.graphics.setColor(o[1], o[2], o[3], o[4])
@@ -244,15 +246,35 @@ return {
                 end
             end,
             drawEditor=function(self)
+                self:drawTopMenu()
                 self:drawObjectDropper()
+            end,
+            drawTopMenu=function(self)
+                local font=love.graphics.getFont()
+                love.graphics.setColor(0, 0, 0, 0.8)
+                love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth()/self.scale.x, font:getHeight()+2)
+                love.graphics.setColor(1, 1, 1, 1)
+                love.graphics.print("objs", 2, 2)
+                
+                if self:mouseCollide({x=font:getWidth("objs")+6, y=2, width=font:getWidth("layers")+2, height=font:getHeight()+2}) then
+                    love.graphics.setColor(238/255, 241/255, 65/255, 1)
+                end
+                love.graphics.print("layers", font:getWidth("objs")+6, 2)
+                love.graphics.setColor(1, 1, 1, 1)
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectDropper=function(self)
                 local windowHt=120/self.scale.y
                 local windowWidth=(love.graphics.getWidth()/self.scale.x)
-                self:drawWindow({x=-16, y=0, w=windowWidth+16, h=windowHt})
                 --draw rows of objects here to select, as well as < and > if it gets to be too big.
-                local x=10
+                --draw the tab at the top.
+                local font=love.graphics.getFont()
+                self:drawWindow({x=0, y=2, w=font:getWidth("objs")+4, h=font:getHeight()+3, background=self.windowColors.border})
+                love.graphics.print("objs", 2, 2)
+
+                local x, y=14, font:getHeight()+2
+                self:drawWindow({x=-32, y=y, w=windowWidth+42, h=windowHt})
+
                 for i,v in pairs(self.editorObject) do
                     local obj=self.objectTypes[v]
                     --if object image is larger than window, scale to fit.
@@ -266,7 +288,7 @@ return {
 
                     love.graphics.setColor(0.5, 0.5, 0.5, 1) 
                     --if mouse isn't over the object type, brighten it
-                    if self:mouseCollide({x=x, y=5, width=(scale*obj.width), height=(scale*obj.height)}) then 
+                    if self:mouseCollide({x=x, y=y+7, width=(scale*obj.width), height=(scale*obj.height)}) then 
                         love.graphics.setColor(1, 1, 1, 1) 
                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                             self.cooldown=1.0
@@ -280,14 +302,14 @@ return {
                     if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
 
-                    love.graphics.draw(obj.image, x, 5, 0, scale, scale)
+                    love.graphics.draw(obj.image, x, y+7, 0, scale, scale)
                     x=x+obj.width
                 end
                 love.graphics.setColor(1, 1, 1, 1) 
 
                 --draw slider up button
                 --centered on the bttom, just slightly about the height of the dropper window.
-                love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), windowHt-12)
+                love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+(windowHt-12))
 
             end,
             updateEditor=function(self, dt)
