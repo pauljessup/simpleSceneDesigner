@@ -11,12 +11,12 @@ function love.load()
 
     simpleScene:addSceneType({type="nightscene", vars={}})
     simpleScene:addLayerType({type="basic", vars={}})
-    simpleScene:addObjectType({type="npc", icon=love.graphics.newImage("emily.png"), image=love.graphics.newImage("emily.png"),
+    simpleScene:addObjectType({type="npc", image=love.graphics.newImage("emily.png"), width=16, height=24,
                                 update=function(self, object, dt)
                                     --neat.
                                 end,
                                 draw=function(self, object)
-                                    love.graphics.draw(self.icon, object.x, object.y)
+                                    love.graphics.draw(self.image, object.x, object.y)
                                 end,
                                 })
 
