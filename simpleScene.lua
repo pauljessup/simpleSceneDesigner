@@ -249,18 +249,27 @@ return {
                 self:drawTopMenu()
                 self:drawObjectDropper()
             end,
+            drawTab=function(self, name, x, y)
+                local font=love.graphics.getFont()
+                if self:mouseCollide({x=x, y=y, width=font:getWidth(name)+2, height=font:getHeight()+2}) then
+                    love.graphics.setColor(238/255, 241/255, 65/255, 1)
+                end
+                love.graphics.print(name, x, y)
+                love.graphics.setColor(1, 1, 1, 1)
+            end,
             drawTopMenu=function(self)
                 local font=love.graphics.getFont()
                 love.graphics.setColor(0, 0, 0, 0.8)
                 love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth()/self.scale.x, font:getHeight()+2)
                 love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.print("objs", 2, 2)
+                local tabs={"objs", "layers", "scene"}
                 
-                if self:mouseCollide({x=font:getWidth("objs")+6, y=2, width=font:getWidth("layers")+2, height=font:getHeight()+2}) then
-                    love.graphics.setColor(238/255, 241/255, 65/255, 1)
+                local x, y=2, 2
+                for i,v in ipairs(tabs) do
+                    self:drawTab(v, x, y)
+                    x=x+font:getWidth(v)+6
                 end
-                love.graphics.print("layers", font:getWidth("objs")+6, 2)
-                love.graphics.setColor(1, 1, 1, 1)
+                
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectDropper=function(self)
