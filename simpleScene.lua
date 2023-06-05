@@ -82,6 +82,16 @@ return {
                 self.layers[#self.layers+1]=data
             end,
             addObject=function(self, data)
+                --sanity check
+                if self.objectTypes[data.type]==nil then error(data.type .. " object type doesn't exist") end
+
+                --add other variable data.
+                local width, height=self.objectTypes[data.type].width,self.objectTypes[data.type].height
+                if width==nil then width=0 end
+                if height==nil then height=0 end
+
+                data.width=width 
+                data.height=height
                 self.objects[#self.objects+1]=data
             end,
             update=function(self, dt)
@@ -122,12 +132,12 @@ return {
                 for i,v in ipairs(zsort) do
                     local object=self.objects[v.id]
                     local type=self.objectTypes[object.type]
-                    if self.editing==false and type.draw~=nil then
-                            type:draw(object, x, y) 
-                    --if in the editor, and the type icon is set
-                    elseif self.editing==true and type.icon~=nil then
-                        love.graphics.draw(type.icon, object.x+x, object.y+y)
+                    if type.draw~=nil then
+                            type:draw(object, x, y, self.editing) 
                     end                    
+                    if self.editing then
+                        love.graphics.print(i, x+object.x+(object.width/2), y+object.y-5)
+                    end
                 end
             end,
             drawLayer=function(self, x, y, layer)
