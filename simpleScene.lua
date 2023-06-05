@@ -11,14 +11,21 @@ return {
             layers={},
             objects={},
             editing=false,
+            windowColors={background={63/256, 63/256, 116/256, 149/256}, border={1, 1, 1, 1}},
             scale={x=1, y=1},
             path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             cooldown=0.0, --so mousepresses don't repeat a ton.
-            setScale=function(self, scalex, scaley)
+           setWindowColor=function(self, background, border)
+                self.windowColors.background=background
+                self.windowColors.border=border 
+           end,
+           setScale=function(self, scalex, scaley)
                 --mostly for mouse functions.
                 self.scale={x=scalex, y=scaley}
             end,
+            startEditing=function(self) self.editing=true end,
+            endEditing=function(self) self.editing=true end,
             addSceneType=function(self, type)
                 self.sceneTypes[type.type]=type
             end,
@@ -96,9 +103,12 @@ return {
                             type:draw(object, x, y) 
                     --if in the editor, and the type icon is set
                     elseif self.editing==true and type.icon~=nil then
-                        love.graphics(type.icon, object.x+x, object.y+y)
+                        love.graphics.draw(type.icon, object.x+x, object.y+y)
                     end                    
                 end
+            end,
+            drawWindow=function(self, x, y, h, w)
+
             end,
             drawLayer=function(self, x, y, layer)
                 --if it's passing the layer number...
