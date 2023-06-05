@@ -11,14 +11,22 @@ return {
             layers={},
             objects={},
             editing=false,
-            windowColors={background={63/256, 63/256, 116/256, 149/256}, border={1, 1, 1, 1}},
+            windowColors={background={63/256, 63/256, 116/256, 220/256}, border={63/256, 63/256, 116/256, 256/256}},
             scale={x=1, y=1},
             path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             cooldown=0.0, --so mousepresses don't repeat a ton.
+            --this allows us to search for background images, or to load scenes.
+            directories={scenes="scenes", layers="backgrounds"},
            setWindowColor=function(self, background, border)
                 self.windowColors.background=background
                 self.windowColors.border=border 
+           end,
+           setSceneDirectory=function(self, directory)
+            self.directories.scenes=directory
+           end,
+           setLayerDirectory=function(self, directory)
+            self.directories.layers=directory
            end,
            drawWindow=function(self, window)
                 local oldColor={}
