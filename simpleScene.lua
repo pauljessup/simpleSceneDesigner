@@ -7,6 +7,7 @@ return {
             activeLayer=0,
             sceneTypes={},
             layerTypes={},
+            editorState="scene",
             name="",
             objectTypes={},
             layers={},
@@ -217,7 +218,8 @@ return {
                 end
                 if self.editing==true then self:drawEditor() end
             end,
-            ------------------EDITOR FUNCTIONALITY-----------------------
+            
+------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
             mouseCollide=function(self, col)
                 local mx, my = love.mouse.getPosition()
                 mx=math.floor(mx/self.scale.x)
@@ -247,12 +249,14 @@ return {
             end,
             drawEditor=function(self)
                 self:drawTopMenu()
-                self:drawObjectDropper()
             end,
             drawTab=function(self, name, x, y)
                 local font=love.graphics.getFont()
                 if self:mouseCollide({x=x, y=y, width=font:getWidth(name)+2, height=font:getHeight()+2}) then
                     love.graphics.setColor(238/255, 241/255, 65/255, 1)
+                    if love.mouse.isDown(1) and self.cooldown==0.0 then
+                        self.editorState=name
+                    end
                 end
                 love.graphics.print(name, x, y)
                 love.graphics.setColor(1, 1, 1, 1)
@@ -268,6 +272,13 @@ return {
                 for i,v in ipairs(tabs) do
                     self:drawTab(v, x, y)
                     x=x+font:getWidth(v)+6
+                end
+                if self.editorState=="scene" then
+
+                elseif self.editorState=="layers" then
+
+                elseif self.editorState=="objs" then
+                    self:drawObjectDropper()
                 end
                 
             end,
@@ -309,7 +320,6 @@ return {
                         end
                     end
                     if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
-                    if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
 
                     love.graphics.draw(obj.image, x, y+7, 0, scale, scale)
                     x=x+obj.width
@@ -323,5 +333,6 @@ return {
             end,
             updateEditor=function(self, dt)
                     self:mouseOverObject()
+                    if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
             end,
 }
