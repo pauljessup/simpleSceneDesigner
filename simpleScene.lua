@@ -13,11 +13,13 @@ return {
             layers={},
             objects={},
             editing=false,
-            windowColors={font={1, 1, 1,}, background={63/256, 63/256, 116/256, 220/256}, border={63/256, 63/256, 116/256, 256/256}},
+            topMenuHide=false,
+            windowColors={font={1, 1, 1,}, background={63/255, 63/255, 126/255, 150/255}, border={63/255, 63/255, 116/255, 255/255}},
             scale={x=1, y=1},
             path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             editorObject={},
+            topMenuSize=120,
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
@@ -30,6 +32,8 @@ return {
                     if dir.editor~=nil then self.directories.editor=dir.editor end
                 end
                 if info.scale~=nil then self:setScale(info.scale[1], info.scale[2]) end
+
+                self.topMenuSize=self.topMenuSize/self.scale.y
 
                 --now we load the gui images for the editor.
                 self.guiImages={
@@ -218,12 +222,16 @@ return {
                 end
                 if self.editing==true then self:drawEditor() end
             end,
-            
+
 ------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
-            mouseCollide=function(self, col)
+            scaleMousePosition=function(self)
                 local mx, my = love.mouse.getPosition()
                 mx=math.floor(mx/self.scale.x)
                 my=math.floor(my/self.scale.y)
+                return mx, my
+            end,
+            mouseCollide=function(self, col)
+                local mx, my = self:scaleMousePosition()
 
                 if col.layer and self.activeLayer and (col.layer~=self.activeLayer) then return false end
                 if   col.x < mx+2 and
@@ -249,16 +257,50 @@ return {
             end,
             drawEditor=function(self)
                 self:drawTopMenu()
+                local mx, my=self:scaleMousePosition()
+
+
+                --show object under mouse to drop
+                if self.dropObject~=nil then
+                    local obj=self.objectTypes[self.editorObject[self.dropObject]]
+                    if my>(self.topMenuSize+obj.height) then
+                        love.graphics.setColor(1, 1, 1, 0.7)
+                        love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
+                        love.graphics.setColor(1, 1, 1, 1)
+                    end
+                end
             end,
             drawTab=function(self, name, x, y)
                 local font=love.graphics.getFont()
-                if self:mouseCollide({x=x, y=y, width=font:getWidth(name)+2, height=font:getHeight()+2}) then
-                    love.graphics.setColor(238/255, 241/255, 65/255, 1)
+                local windowHt=self.topMenuSize
+                local windowWidth=(love.graphics.getWidth()/self.scale.x)
+
+                if self.editorState==name then
+                    --draw the tab at the top.
+                    self:drawWindow({x=x-2, y=y-2, w=font:getWidth(name)+4, h=font:getHeight()+3, background=self.windowColors.border})    
+                end
+                --change state if a new tab is clicked on.
+                if self:mouseCollide({x=x, y=y, width=font:getWidth(name)+2, height=font:getHeight()+2}) and self.editorState~=name then
+                    --love.graphics.setColor(238/255, 241/255, 65/255, 1)
                     if love.mouse.isDown(1) and self.cooldown==0.0 then
+                        self.cooldown=1.0
                         self.editorState=name
+                        self.topMenuHide=false
                     end
                 end
-                love.graphics.print(name, x, y)
+                    --draw the little thing underneath.
+                    love.graphics.print(name, x, y)
+                    local x, y=14, font:getHeight()+2
+                    local windowWidth=(love.graphics.getWidth()/self.scale.x)
+                if self.topMenuHide==false then
+                    self:drawWindow({x=-32, y=y, w=windowWidth+42, h=windowHt})
+                        --draw slider up button
+                         --centered on the bttom, just slightly about the height of the dropper window.
+                        love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+(windowHt-12))
+                else
+                    self:drawWindow({x=-32, y=y, w=windowWidth+42, h=16})
+                    love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+16, 0, 1, -1)
+                end
                 love.graphics.setColor(1, 1, 1, 1)
             end,
             drawTopMenu=function(self)
@@ -266,6 +308,8 @@ return {
                 love.graphics.setColor(0, 0, 0, 0.8)
                 love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth()/self.scale.x, font:getHeight()+2)
                 love.graphics.setColor(1, 1, 1, 1)
+                
+                --draw tabs.
                 local tabs={"objs", "layers", "scene"}
                 
                 local x, y=2, 2
@@ -273,27 +317,22 @@ return {
                     self:drawTab(v, x, y)
                     x=x+font:getWidth(v)+6
                 end
-                if self.editorState=="scene" then
+                if self.topMenuHide==false then
+                    if self.editorState=="scene" then
 
-                elseif self.editorState=="layers" then
+                    elseif self.editorState=="layers" then
 
-                elseif self.editorState=="objs" then
-                    self:drawObjectDropper()
-                end
-                
+                    elseif self.editorState=="objs" then
+                        self:drawObjectDropper()
+                    end
+                end                
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectDropper=function(self)
-                local windowHt=120/self.scale.y
+                local windowHt=self.topMenuSize
                 local windowWidth=(love.graphics.getWidth()/self.scale.x)
-                --draw rows of objects here to select, as well as < and > if it gets to be too big.
-                --draw the tab at the top.
                 local font=love.graphics.getFont()
-                self:drawWindow({x=0, y=2, w=font:getWidth("objs")+4, h=font:getHeight()+3, background=self.windowColors.border})
-                love.graphics.print("objs", 2, 2)
-
                 local x, y=14, font:getHeight()+2
-                self:drawWindow({x=-32, y=y, w=windowWidth+42, h=windowHt})
 
                 for i,v in pairs(self.editorObject) do
                     local obj=self.objectTypes[v]
@@ -322,17 +361,49 @@ return {
                     if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
 
                     love.graphics.draw(obj.image, x, y+7, 0, scale, scale)
+                    love.graphics.print(v, x, (windowHt))
                     x=x+obj.width
                 end
                 love.graphics.setColor(1, 1, 1, 1) 
-
-                --draw slider up button
-                --centered on the bttom, just slightly about the height of the dropper window.
-                love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+(windowHt-12))
-
             end,
             updateEditor=function(self, dt)
                     self:mouseOverObject()
+                    local mx, my=self:scaleMousePosition()
+
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
+
+                    --drop an object on the map
+                    
+                    if love.mouse.isDown(1) and self.cooldown==0.0 then
+                        if self.dropObject~=nil then
+                            local type=self.editorObject[self.dropObject]
+                            local obj=self.objectTypes[type]
+                            local windowH=self.topMenuSize
+                            if self.topMenuHide==true then windowH=16 end
+                            if my>(windowH+obj.height)then
+                                self.cooldown=1.0
+                                self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
+                            end
+                        end
+                    end
+                    
+                    --if top menu is not hidden, and the up arrow is pressed, hide it.
+                    if self.topMenuHide==false then
+                            local x,y=((love.graphics.getWidth()/self.scale.x)/2)-(self.guiImages.arrow:getWidth()/2), 14+(self.topMenuSize-12)
+                            if self:mouseCollide({x=x, y=y, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}) then
+                                if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                    self.cooldown=1.0
+                                    self.topMenuHide=true
+                                end
+                            end
+                    else
+                        if self:mouseCollide({x=((love.graphics.getWidth()/self.scale.x)/2)-(self.guiImages.arrow:getWidth()/2), y=16, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}) then
+                            if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                self.cooldown=1.0
+                                self.topMenuHide=false
+                            end
+                        end
+                    end
+
             end,
 }
