@@ -55,6 +55,8 @@ return {
                 self.sceneTypes[type.type]=type
             end,
             addObjectType=function(self, type)
+                if type.width==nil then type.width=type.image:getWidth() end
+                if type.height==nil then type.height=type.image:getHeight() end
                 self.objectTypes[type.type]=type
                 self.editorObject[#self.editorObject+1]=type.type
             end,
@@ -90,8 +92,6 @@ return {
 
                 --add other variable data.
                 local width, height=self.objectTypes[data.type].width,self.objectTypes[data.type].height
-                if width==nil then width=0 end
-                if height==nil then height=0 end
 
                 data.width=width 
                 data.height=height
@@ -232,15 +232,23 @@ return {
             drawEditor=function(self)
                 self:drawObjectDropper()
             end,
+            --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectDropper=function(self)
-                self:drawWindow({x=-16, y=0, w=love.graphics.getWidth()+16, h=32})
+                local windowHt=120/self.scale.y
+                self:drawWindow({x=-16, y=0, w=love.graphics.getWidth()+16, h=windowHt})
                 --draw rows of objects here to select, as well as < and > if it gets to be too big.
-                local x=0
+                local x=10
                 for i,v in pairs(self.editorObject) do
                     local obj=self.objectTypes[v]
+                    --if object image is larger than window, scale to fit.
+                    local scale=1
+                    if obj.height>(windowHt-12) then 
+                        scale=(windowHt-12)/obj.height
+                    end
+
                     love.graphics.setColor(0.5, 0.5, 0.5, 1) 
                     --if mouse isn't over the object type, brighten it
-                    if self:mouseCollide({x=x, y=5, width=obj.width, height=obj.height}) then 
+                    if self:mouseCollide({x=x, y=5, width=(scale*obj.width), height=(scale*obj.height)}) then 
                         love.graphics.setColor(1, 1, 1, 1) 
                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                             self.cooldown=1.0
@@ -254,7 +262,8 @@ return {
                     if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
 
-                    love.graphics.draw(obj.image, x, 5)
+
+                    love.graphics.draw(obj.image, x, 5, 0, scale, scale)
                     x=x+obj.width
                 end
                 love.graphics.setColor(1, 1, 1, 1) 
