@@ -11,6 +11,7 @@ return {
             layers={},
             objects={},
             editing=false,
+            scale={x=1, y=1},
             path = love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             cooldown=0.0, --so mousepresses don't repeat a ton.
@@ -19,7 +20,7 @@ return {
                 self.scale={x=scalex, y=scaley}
             end,
             addSceneType=function(self, type)
-
+                self.sceneTypes[type.type]=type
             end,
             addObjectType=function(self, type)
                 self.objectTypes[type.type]=type
@@ -27,13 +28,14 @@ return {
             addLayerType=function(self, type)
                 self.layerTypes[type.type]=type
             end,
-            newScene=function(self, name)
+            newScene=function(self, name, type)
                 self:clean()
                 self.name=name
+                self.type=type
             end,
             clean=function(self)
                 for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
-                for i=#self.obejcts, -1 do self.objects[i]=nil end self.objects={}
+                for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
             end,
             load=function(self, data)
                 local data, len=binser.readFile(self.path .. "/" .. self.name)
@@ -54,11 +56,11 @@ return {
             update=function(self, dt)
                 for il, layer in ipairs(self.layers) do 
                     local type=self.layerTypes[layer.type]
-                    if type.update~=nil then type:update(layer, self.editing, dt) end
+                    if type.update~=nil and self.editing==false then type:update(layer, dt) end
                 end
                 for ob, object in ipairs(self.objects) do 
                     local type=self.objectTypes[object.type]
-                    if type.update~=nil then type:update(object, self.editing, dt) end                    
+                    if type.update~=nil and self.editing==false then type:update(object, dt) end                    
                 end
                 if self.editing==true then
                     --do editing update stuff here, with mouse, etc.
@@ -86,7 +88,12 @@ return {
                 for i,v in ipairs(zsort) do
                     local object=self.objects[v.id]
                     local type=self.objectTypes[object.type]
-                    if type.draw~=nil then type:draw(object, x, y, self.editing) end                    
+                    if self.editing==false and type.draw~=nil then
+                            type:draw(object, x, y) 
+                    --if in the editor, and the type icon is set
+                    elseif self.editing==true and type.icon~=nil then
+                        love.graphics(type.icon, object.x+x, object.y+y)
+                    end                    
                 end
             end,
             drawLayer=function(self, x, y, layer)
@@ -94,7 +101,7 @@ return {
                 if type(layer)~="table" then layer=self.layers[layer] end
                 local type=self.layerTypes[layer.type]
                 if type.draw~=nil then
-                    type:draw(layer, x, y, self.editing)
+                    type:draw(layer, x, y)
                 else
                     --if there is no draw function and there is an image, just draw the image relative to camera coords.
                     if layer.image~=nil then
