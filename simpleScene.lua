@@ -16,6 +16,7 @@ return {
             scale={x=1, y=1},
             path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
+            editorObject={},
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
@@ -55,6 +56,7 @@ return {
             end,
             addObjectType=function(self, type)
                 self.objectTypes[type.type]=type
+                self.editorObject[#self.editorObject+1]=type.type
             end,
             addLayerType=function(self, type)
                 self.layerTypes[type.type]=type
@@ -166,6 +168,8 @@ return {
                     local type=self.objectTypes[object.type]
                     if type.draw~=nil then
                             type:draw(object, x, y, self.editing) 
+                    elseif type.image~=nil then
+                        type:draw(type.image, object.x+x, object.y+y) 
                     end
                 end
             end,
@@ -213,9 +217,6 @@ return {
                 end
                 return false
             end,
-            mouseOverDrop=function(self)
-            
-            end,
             mouseOverButton=function(self)
 
             end,
@@ -234,6 +235,29 @@ return {
             drawObjectDropper=function(self)
                 self:drawWindow({x=-16, y=0, w=love.graphics.getWidth()+16, h=32})
                 --draw rows of objects here to select, as well as < and > if it gets to be too big.
+                local x=0
+                for i,v in pairs(self.editorObject) do
+                    local obj=self.objectTypes[v]
+                    love.graphics.setColor(0.5, 0.5, 0.5, 1) 
+                    --if mouse isn't over the object type, brighten it
+                    if self:mouseCollide({x=x, y=5, width=obj.width, height=obj.height}) then 
+                        love.graphics.setColor(1, 1, 1, 1) 
+                        if love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.cooldown=1.0
+                            if self.dropObject~=i then 
+                                self.dropObject=i 
+                            else
+                                self.dropObject=nil
+                            end
+                        end
+                    end
+                    if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
+                    if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
+
+                    love.graphics.draw(obj.image, x, 5)
+                    x=x+obj.width
+                end
+                love.graphics.setColor(1, 1, 1, 1) 
             end,
             updateEditor=function(self, dt)
                     self:mouseOverObject()
