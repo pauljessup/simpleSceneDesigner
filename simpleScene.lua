@@ -11,22 +11,27 @@ return {
             layers={},
             objects={},
             editing=false,
-            windowColors={background={63/256, 63/256, 116/256, 220/256}, border={63/256, 63/256, 116/256, 256/256}},
+            windowColors={font={1, 1, 1,}, background={63/256, 63/256, 116/256, 220/256}, border={63/256, 63/256, 116/256, 256/256}},
             scale={x=1, y=1},
             path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
-            directories={scenes="scenes", layers="backgrounds"},
-           setWindowColor=function(self, background, border)
+            --default is parent directory.
+            directories={scenes="", layers="", editor=""},
+           setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
                 self.windowColors.border=border 
+                self.windowColors.font=font
            end,
            setSceneDirectory=function(self, directory)
             self.directories.scenes=directory
            end,
            setLayerDirectory=function(self, directory)
             self.directories.layers=directory
+           end,
+           setEditorResourceDirectory=function(self, directory)
+            self.directories.editor=directory
            end,
            drawWindow=function(self, window)
                 local oldColor={}
@@ -92,7 +97,7 @@ return {
                     if type.update~=nil and self.editing==false then type:update(object, dt) end                    
                 end
                 if self.editing==true then
-                    --do editing update stuff here, with mouse, etc.
+                    self:updateEditor(dt)
                 end
             end,
             drawButton=function(self)
@@ -151,12 +156,13 @@ return {
                 if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].draw~=nil then
                     self.sceneTypes[self.type]:draw()
                 end
+                if self.editing==true then self:drawEditor() end
             end,
             ------------------EDITOR FUNCTIONALITY-----------------------
-            drawEditor=function(self, scalex, scaley)
+            drawEditor=function(self)
 
             end,
-            updateEditor=function(self, scalex, scaley)
+            updateEditor=function(self, dt)
 
             end,
 }
