@@ -4,6 +4,7 @@ local folderOfThisFile = (...):match("(.-)[^%.]+$")
 local function drawSort(a,b) return a.y+a.h < b.y+b.h end
 
 return {
+            activeLayer=0,
             sceneTypes={},
             layerTypes={},
             name="",
@@ -197,6 +198,36 @@ return {
                 if self.editing==true then self:drawEditor() end
             end,
             ------------------EDITOR FUNCTIONALITY-----------------------
+            mouseCollide=function(self, col)
+                local mx, my = love.mouse.getPosition()
+                mx=math.floor(mx/self.scale.x)
+                my=math.floor(my/self.scale.y)
+
+                if col.layer and self.activeLayer and (col.layer~=self.activeLayer) then return false end
+                if   col.x < mx+2 and
+                mx < col.x+col.width and
+                col.y < my+2 and
+                my < col.y+col.height 
+                then
+                    return true
+                end
+                return false
+            end,
+            mouseOverDrop=function(self)
+            
+            end,
+            mouseOverButton=function(self)
+
+            end,
+            mouseOverObject=function(self)
+                for i,v in ipairs(self.objects) do
+                    if self:mouseCollide(v) then
+                        if love.mouse.isDown(1) then
+                            --add drag and drop stuff here.
+                        end
+                    end
+                end
+            end,
             drawEditor=function(self)
                 self:drawObjectDropper()
             end,
@@ -205,6 +236,6 @@ return {
                 --draw rows of objects here to select, as well as < and > if it gets to be too big.
             end,
             updateEditor=function(self, dt)
-
+                    self:mouseOverObject()
             end,
 }
