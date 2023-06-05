@@ -21,6 +21,20 @@ return {
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
             directories={scenes="", layers="", editor=""},
+           init=function(self, info)
+                local dir=info.directories
+                if dir~=nil then
+                    if dir.scenes~=nil then self.directories.scenes=dir.scenes end
+                    if dir.layers~=nil then self.directories.layers=dir.layers end
+                    if dir.editor~=nil then self.directories.editor=dir.editor end
+                end
+                if info.scale~=nil then self:setScale(info.scale[1], info.scale[2]) end
+
+                --now we load the gui images for the editor.
+                self.guiImages={
+                                    arrow=love.graphics.newImage(self.directories.editor .. "/arrow.png")
+                } 
+           end,
            setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
                 self.windowColors.border=border 
@@ -235,13 +249,17 @@ return {
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectDropper=function(self)
                 local windowHt=120/self.scale.y
-                self:drawWindow({x=-16, y=0, w=love.graphics.getWidth()+16, h=windowHt})
+                local windowWidth=(love.graphics.getWidth()/self.scale.x)
+                self:drawWindow({x=-16, y=0, w=windowWidth+16, h=windowHt})
                 --draw rows of objects here to select, as well as < and > if it gets to be too big.
                 local x=10
                 for i,v in pairs(self.editorObject) do
                     local obj=self.objectTypes[v]
                     --if object image is larger than window, scale to fit.
                     local scale=1
+                    if obj.width>(windowHt-12) then 
+                        scale=(windowHt-12)/obj.width
+                    end
                     if obj.height>(windowHt-12) then 
                         scale=(windowHt-12)/obj.height
                     end
@@ -262,11 +280,15 @@ return {
                     if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
 
-
                     love.graphics.draw(obj.image, x, 5, 0, scale, scale)
                     x=x+obj.width
                 end
                 love.graphics.setColor(1, 1, 1, 1) 
+
+                --draw slider up button
+                --centered on the bttom, just slightly about the height of the dropper window.
+                love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), windowHt-12)
+
             end,
             updateEditor=function(self, dt)
                     self:mouseOverObject()

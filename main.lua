@@ -4,14 +4,17 @@ love.graphics.setDefaultFilter("nearest","nearest")
 
 
 function love.load() 
-    --you only need to call this for the editor. If you want, you can scale manually outside of this
-    --the editor needs this for scaling the mouse x/y when dropping things/etc
-    simpleScene:setScale(3, 3)
-    simpleScene:setEditorResourceDirectory("editorAssets")
+    
+    --when we init we set the directories where it will find stuff.
+    --default is same directory as source files, or "/"
+    --we set the editor asset directory to be editorAssets. We set the scale to 3.
+    --Note, only when using the editor do you ahve to set the scale here. You can do other scaling
+    --stuff outside of the editor, it's only here, when using the mouse to edit, do you need it.
+    simpleScene:init({directories={editor="editorAssets"}, scale={3, 3}})
 
     simpleScene:addSceneType({type="nightscene", vars={}})
     simpleScene:addLayerType({type="basic", vars={}})
-    simpleScene:addObjectType({type="npc", image=love.graphics.newImage("emily.png"), width=16, height=24,
+    simpleScene:addObjectType({type="npc", image=love.graphics.newImage("emily.png"),
                                 update=function(self, object, dt)
                                     --neat.
                                 end,
