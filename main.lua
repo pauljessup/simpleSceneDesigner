@@ -7,8 +7,8 @@ function love.load()
     --you only need to call this for the editor. If you want, you can scale manually outside of this
     --the editor needs this for scaling the mouse x/y when dropping things/etc
     simpleScene:setScale(3, 3)
-    simplescene:setEditorResourceDirectory("editorAssets")
-    
+    simpleScene:setEditorResourceDirectory("editorAssets")
+
     simpleScene:addSceneType({type="nightscene", vars={}})
     simpleScene:addLayerType({type="basic", vars={}})
     simpleScene:addObjectType({type="npc", icon=love.graphics.newImage("emily.png"), image=love.graphics.newImage("emily.png"),
