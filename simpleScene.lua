@@ -12,7 +12,7 @@ return {
             objects={},
             editing=false,
             scale={x=1, y=1},
-            path = love.filesystem.getSource(),
+            path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             cooldown=0.0, --so mousepresses don't repeat a ton.
             setScale=function(self, scalex, scaley)
@@ -28,10 +28,11 @@ return {
             addLayerType=function(self, type)
                 self.layerTypes[type.type]=type
             end,
-            newScene=function(self, name, type)
+            newScene=function(self, name, type, vars)
                 self:clean()
                 self.name=name
                 self.type=type
+                self.vars=vars
             end,
             clean=function(self)
                 for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
@@ -54,6 +55,9 @@ return {
                 self.objects[#self.objects+1]=data
             end,
             update=function(self, dt)
+                if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].update~=nil then
+                    self.sceneTypes[self.type]:update(dt)
+                end
                 for il, layer in ipairs(self.layers) do 
                     local type=self.layerTypes[layer.type]
                     if type.update~=nil and self.editing==false then type:update(layer, dt) end
@@ -117,6 +121,10 @@ return {
                 love.graphics.scale(self.scale.x, self.scale.y)
                 for il,layer in ipairs(self.layers) do 
                         self:drawLayer(x, y, layer)
+                end
+
+                if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].draw~=nil then
+                    self.sceneTypes[self.type]:draw()
                 end
             end,
             ------------------EDITOR FUNCTIONALITY-----------------------
