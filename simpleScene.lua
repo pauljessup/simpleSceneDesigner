@@ -92,7 +92,9 @@ return {
 
                 data.width=width 
                 data.height=height
-                self.objects[#self.objects+1]=data
+                data.id=#self.objects+1
+                data.scene=self.name
+                self.objects[data.id]=data
             end,
             update=function(self, dt)
                 if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].update~=nil then
@@ -122,6 +124,35 @@ return {
                 --draw an object icon at x/y
                 --for selecting and dropping objects.
             end,
+            ---allow the dev to query layers and objects, in case they want
+            --to use something other than the simpleScene's default system for drawing and updating.
+            getLayers=function(self)
+                return self.layers
+            end,
+            getLayer=function(self, layer)
+                if self.layers[layer]==nil then error("Layer " .. layer .. " doesn't exist") end
+                return self.layers[layer]
+            end,
+            getObjects=function(self, layerid)
+                if layerid~=nil and self.layers[layerid]~=nil then
+                    local objects={}
+                    for i,v in ipairs(self.objects) do
+                        if v.layer==layerid then
+                            objects[#objects+1]=v
+                        end
+                    end
+                    return objects
+                else
+                    return self.objects
+                end
+            end,
+            getObject=function(self, id)
+                if id==nil and self.objecs[id]==nil then 
+                    error("Object id " .. id .. " doesn't exist.")
+                else
+                    return self.objects[id]
+                end
+            end,
             drawObjects=function(self, layer, x, y)
                 --zsorting
                 local zsort={}
@@ -134,9 +165,6 @@ return {
                     local type=self.objectTypes[object.type]
                     if type.draw~=nil then
                             type:draw(object, x, y, self.editing) 
-                    end                    
-                    if self.editing then
-                        love.graphics.print(i, x+object.x+(object.width/2), y+object.y-5)
                     end
                 end
             end,
@@ -170,7 +198,11 @@ return {
             end,
             ------------------EDITOR FUNCTIONALITY-----------------------
             drawEditor=function(self)
-
+                self:drawObjectDropper()
+            end,
+            drawObjectDropper=function(self)
+                self:drawWindow({x=-16, y=0, w=love.graphics.getWidth()+16, h=32})
+                --draw rows of objects here to select, as well as < and > if it gets to be too big.
             end,
             updateEditor=function(self, dt)
 
