@@ -9,6 +9,7 @@ return {
             layerTypes={},
             editorState="scene",
             name="",
+            size={width=love.graphics.getWidth(), height=love.graphics.getHeight()},
             objectTypes={},
             layers={},
             objects={},
@@ -20,6 +21,7 @@ return {
             binser=require(folderOfThisFile .. "binser"),
             editorObject={},
             topMenuSize=120,
+            vars={},
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
@@ -84,11 +86,25 @@ return {
             addLayerType=function(self, type)
                 self.layerTypes[type.type]=type
             end,
-            newScene=function(self, name, type, vars)
+            moveScene=function(self, x, y)
+                self.x=x
+                self.y=y
+            end,
+            changeSceneSize=function(self, width, height)
+                self.size={width=width, height=height}
+            end,
+            newScene=function(self, vars)
                 self:clean()
-                self.name=name
-                self.type=type
-                self.vars=vars
+                self.name=vars.name
+                self.type=vars.type
+                if vars.x~=nil and vars.y~=nil then
+                    self.x=vars.x
+                    self.y=vars.y
+                end
+                if vars.width~=nil and vars.height~=nil then
+                    self.size={width=vars.width, height=vars.height}
+                end
+                self.vars=vars.vars
             end,
             clean=function(self)
                 for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
@@ -102,6 +118,7 @@ return {
             end,
             save=function(self)
                 --serialize it and write to a file
+                --add scene info here as well, like name, x, y, width, height, etc.
                 binser.writeFile(self.path .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
             end,
             addLayer=function(self, data)
@@ -184,14 +201,22 @@ return {
                     zsort[#zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
                 end
                 table.sort(zsort, drawSort)
+                local didlight=false
                 for i,v in ipairs(zsort) do
                     local object=self.objects[v.id]
                     local type=self.objectTypes[object.type]
+                    if self.editing and self.dragNDrop==nil and self.dropObject==nil then
+                        if self:mouseCollide(object) and didlight==false then
+                            didlight=true
+                            love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                        end
+                    end
                     if type.draw~=nil then
                             type:draw(object, x, y, self.editing) 
                     elseif type.image~=nil then
                         type:draw(type.image, object.x+x, object.y+y) 
                     end
+                    love.graphics.setColor(1, 1, 1, 1)
                 end
             end,
             drawLayer=function(self, x, y, layer)
@@ -209,8 +234,8 @@ return {
                 self:drawObjects(il, x, y)   
             end,
             draw=function(self, x, y)
-                if x==nil then x=0 end
-                if y==nil then y=0 end
+                if x==nil then x=self.x end
+                if y==nil then y=self.y end
 
                 love.graphics.scale(self.scale.x, self.scale.y)
                 for il,layer in ipairs(self.layers) do 
@@ -243,15 +268,25 @@ return {
                 end
                 return false
             end,
-            mouseOverButton=function(self)
-
-            end,
             mouseOverObject=function(self)
-                for i,v in ipairs(self.objects) do
-                    if self:mouseCollide(v) then
-                        if love.mouse.isDown(1) then
-                            --add drag and drop stuff here.
+                if self.dropObject==nil and self.dragNDrop==nil then
+                        for i,v in ipairs(self.objects) do
+                            if self:mouseCollide(v) then
+                                if love.mouse.isDown(1) then
+                                    self.dragNDrop=i
+                                end
+                            end
                         end
+                end
+                if self.dragNDrop~=nil then
+                    local mx, my=self:scaleMousePosition()
+                    --draw it being moved.
+                    local obj=self.objects[self.dragNDrop]
+                    obj.x=mx-(obj.width/2) 
+                    obj.y=my-(obj.height/2)
+                    --if mouse is let go, drop object there.
+                    if love.mouse.isDown(1)==false then
+                        self.dragNDrop=nil
                     end
                 end
             end,
@@ -259,11 +294,12 @@ return {
                 self:drawTopMenu()
                 local mx, my=self:scaleMousePosition()
 
-
                 --show object under mouse to drop
                 if self.dropObject~=nil then
                     local obj=self.objectTypes[self.editorObject[self.dropObject]]
-                    if my>(self.topMenuSize+obj.height) then
+                    local windowH=self.topMenuSize
+                    if self.topMenuHide==true then windowH=16 end
+                    if my>((windowH-12)+(obj.height/2))then
                         love.graphics.setColor(1, 1, 1, 0.7)
                         love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
                         love.graphics.setColor(1, 1, 1, 1)
@@ -362,7 +398,7 @@ return {
 
                     love.graphics.draw(obj.image, x, y+7, 0, scale, scale)
                     love.graphics.print(v, x, (windowHt))
-                    x=x+obj.width
+                    x=x+windowHt-8
                 end
                 love.graphics.setColor(1, 1, 1, 1) 
             end,
@@ -380,7 +416,7 @@ return {
                             local obj=self.objectTypes[type]
                             local windowH=self.topMenuSize
                             if self.topMenuHide==true then windowH=16 end
-                            if my>(windowH+obj.height)then
+                            if my>((windowH-12)+(obj.height/2))then
                                 self.cooldown=1.0
                                 self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
                             end
