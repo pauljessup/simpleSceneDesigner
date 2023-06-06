@@ -161,10 +161,6 @@ return {
                 --so that you can specify additional variables, based on a vars variable
                 --added when creating the object type or the layer type or the scene type.
             end,
-            drawIcon=function(self, x, y, obj)
-                --draw an object icon at x/y
-                --for selecting and dropping objects.
-            end,
             ---allow the dev to query layers and objects, in case they want
             --to use something other than the simpleScene's default system for drawing and updating.
             getLayers=function(self)
@@ -307,7 +303,7 @@ return {
                     local obj=self.objectTypes[self.editorObject[self.dropObject]]
                     local windowH=self.topMenuSize
                     if self.topMenuHide==true then windowH=16 end
-                    if my>((windowH-12)+(obj.height/2))then
+                    if my>(windowH+12)then
                         love.graphics.setColor(1, 1, 1, 0.7)
                         love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
                         love.graphics.setColor(1, 1, 1, 1)
@@ -424,7 +420,7 @@ return {
                             local obj=self.objectTypes[type]
                             local windowH=self.topMenuSize
                             if self.topMenuHide==true then windowH=16 end
-                            if my>((windowH-12)+(obj.height/2))then
+                            if my>(windowH+12) then
                                 self.cooldown=1.0
                                 self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
                             end
