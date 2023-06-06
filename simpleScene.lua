@@ -86,6 +86,10 @@ return {
             addLayerType=function(self, type)
                 self.layerTypes[type.type]=type
             end,
+            moveLayer=function(self, layer, x, y)
+                self.layers[layer].x=x
+                self.layers[layer].y=y
+            end,
             moveScene=function(self, x, y)
                 self.x=x
                 self.y=y
@@ -122,6 +126,8 @@ return {
                 binser.writeFile(self.path .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
             end,
             addLayer=function(self, data)
+                if data.x==nil then data.x=0 end
+                if data.y==nil then data.y=0 end
                 self.layers[#self.layers+1]=data
             end,
             addObject=function(self, data)
@@ -228,11 +234,11 @@ return {
                 if type(layer)~="table" then layer=self.layers[layer] end
                 local type=self.layerTypes[layer.type]
                 if type.draw~=nil then
-                    type:draw(layer, x, y)
+                    type:draw(layer, x+self.layers[layer].x, y+self.layers[layer].y)
                 else
                     --if there is no draw function and there is an image, just draw the image relative to camera coords.
                     if layer.image~=nil then
-                        love.graphics.draw(layer.image, x, y)
+                        love.graphics.draw(layer.image, x+self.layers[layer].x, y+self.layers[layer].y)
                     end
                 end
                 self:drawObjects(il, x, y)   
