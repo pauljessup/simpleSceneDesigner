@@ -201,15 +201,23 @@ return {
                     zsort[#zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
                 end
                 table.sort(zsort, drawSort)
-                local didlight=false
+                local didlight, litId=false, 0
+                if self.editing and self.dragNDrop==nil and self.dropObject==nil then
+                    for i,v in ipairs(zsort) do
+                        local object=self.objects[v.id]
+                        local type=self.objectTypes[object.type]
+                        if self:mouseCollide(object)  then
+                            didlight=true 
+                            litId=i
+                        end
+                    end
+                end
+
                 for i,v in ipairs(zsort) do
                     local object=self.objects[v.id]
                     local type=self.objectTypes[object.type]
-                    if self.editing and self.dragNDrop==nil and self.dropObject==nil then
-                        if self:mouseCollide(object) and didlight==false then
-                            didlight=true
+                    if didlight and litId==i then
                             love.graphics.setColor(0.5, 0.5, 0.5, 1)
-                        end
                     end
                     if type.draw~=nil then
                             type:draw(object, x, y, self.editing) 
