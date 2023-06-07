@@ -5,6 +5,7 @@ local function drawSort(a,b) return a.y+a.h < b.y+b.h end
 
 return {
             activeLayer=0,
+            objPageAt=1,
             sceneTypes={},
             layerTypes={},
             editorState="scene",
@@ -318,7 +319,7 @@ return {
                     local obj=self.objectTypes[self.editorObject[self.dropObject]]
                     local windowH=self.topMenuSize
                     if self.topMenuHide==true then windowH=16 end
-                    if my>(windowH+12)then
+                    if my>(windowH+32)then
                         love.graphics.setColor(1, 1, 1, 0.7)
                         love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
                         love.graphics.setColor(1, 1, 1, 1)
@@ -348,10 +349,10 @@ return {
                     local x, y=14, font:getHeight()+2
                     local windowWidth=(love.graphics.getWidth()/self.scale.x)
                 if self.topMenuHide==false then
-                    self:drawWindow({x=-32, y=y, w=windowWidth+42, h=windowHt})
+                    self:drawWindow({x=-32, y=y, w=windowWidth+42, h=windowHt+8})
                         --draw slider up button
                          --centered on the bttom, just slightly about the height of the dropper window.
-                        love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+(windowHt-12))
+                        love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+(windowHt-4))
                 else
                     self:drawWindow({x=-32, y=y, w=windowWidth+42, h=16})
                     love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+16, 0, 1, -1)
@@ -389,15 +390,34 @@ return {
                 local font=love.graphics.getFont()
                 local x, y=14, font:getHeight()+2
 
-                for i,v in pairs(self.editorObject) do
+                if self.objPageAt>1 then
+                                    --draw left and right arrow, if necassary.
+                                    love.graphics.draw(self.guiImages.arrow, 0, 42, math.rad(-90))
+                                    if self:mouseCollide({x=0, y=32, height=16, width=32})  and self.cooldown==0.0 and love.mouse.isDown(1) then
+                                        self.cooldown=1.0
+                                        self.objPageAt=self.objPageAt-1
+                                        if self.objPageAt<1 then self.objPageAt=1 end
+                                    end
+                end
+                if (self.objPageAt+6)<#self.editorObject then
+                                    --draw left and left arrow, if necassary.
+                                    love.graphics.draw(self.guiImages.arrow, (love.graphics.getWidth()/self.scale.x), 26, math.rad(90))
+                                    if self:mouseCollide({x=(love.graphics.getWidth()/self.scale.x)-16, y=32, height=32, width=16}) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                                        self.cooldown=1.0
+                                        self.objPageAt=self.objPageAt+1
+                                        if self.objPageAt>(#self.editorObject-6) then self.objPageAt=(#self.editorObject-6) end
+                                    end
+                end
+                for i=self.objPageAt, self.objPageAt+6 do
+                    v=self.editorObject[i]
                     local obj=self.objectTypes[v]
                     --if object image is larger than window, scale to fit.
                     local scale=1
-                    if obj.width>(windowHt-12) then 
-                        scale=(windowHt-12)/obj.width
+                    if obj.width>(windowHt-8) then 
+                        scale=(windowHt-8)/obj.width
                     end
-                    if obj.height>(windowHt-12) then 
-                        scale=(windowHt-12)/obj.height
+                    if obj.height>(windowHt-8) then 
+                        scale=(windowHt-8)/obj.height
                     end
 
                     love.graphics.setColor(0.5, 0.5, 0.5, 1) 
@@ -433,18 +453,18 @@ return {
                         if self.dropObject~=nil then
                             local type=self.editorObject[self.dropObject]
                             local obj=self.objectTypes[type]
-                            local windowH=self.topMenuSize
+                            local windowH=self.topMenuSize+16
                             if self.topMenuHide==true then windowH=16 end
-                            if my>(windowH+12) then
+                            if my>(windowH+16) then
                                 self.cooldown=1.0
                                 self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
                             end
                         end
                     end
-                    
+
                     --if top menu is not hidden, and the up arrow is pressed, hide it.
                     if self.topMenuHide==false then
-                            local x,y=((love.graphics.getWidth()/self.scale.x)/2)-(self.guiImages.arrow:getWidth()/2), 14+(self.topMenuSize-12)
+                            local x,y=((love.graphics.getWidth()/self.scale.x)/2)-(self.guiImages.arrow:getWidth()/2), 16+(self.topMenuSize-8)
                             if self:mouseCollide({x=x, y=y, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}) then
                                 if love.mouse.isDown(1) and self.cooldown==0.0 then
                                     self.cooldown=1.0
