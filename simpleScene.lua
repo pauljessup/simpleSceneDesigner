@@ -20,8 +20,9 @@ return {
             path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             editorObject={},
-            topMenuSize=120,
+            topMenuSize=130,
             vars={},
+            zsort={},
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
@@ -84,6 +85,8 @@ return {
                 self.editorObject[#self.editorObject+1]=type.type
             end,
             addLayerType=function(self, type)
+                if type.x==nil then type.x=0 end 
+                if type.y==nil then type.y=0 end 
                 self.layerTypes[type.type]=type
             end,
             moveLayer=function(self, layer, x, y)
@@ -155,6 +158,14 @@ return {
                     local type=self.objectTypes[object.type]
                     if type.update~=nil and self.editing==false then type:update(object, dt) end                    
                 end
+                --zsorting...
+                for i=#self.zsort, -1 do self.zsort=nil end 
+                self.zsort={}
+                for i,v in ipairs(self.objects) do
+                    self.zsort[#self.zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
+                end
+
+                table.sort(self.zsort, drawSort)
                 if self.editing==true then
                     self:updateEditor(dt)
                 end
@@ -197,25 +208,22 @@ return {
                 end
             end,
             drawObjects=function(self, layer, x, y)
-                --zsorting
-                local zsort={}
-                for i,v in ipairs(self.objects) do
-                    zsort[#zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
-                end
-                table.sort(zsort, drawSort)
                 local didlight, litId=false, 0
-                if self.editing and self.dragNDrop==nil and self.dropObject==nil then
-                    for i,v in ipairs(zsort) do
-                        local object=self.objects[v.id]
-                        local type=self.objectTypes[object.type]
-                        if self:mouseCollide(object)  then
-                            didlight=true 
-                            litId=i
+
+                if self.editing then
+                    if self.editing and self.dragNDrop==nil and self.dropObject==nil then
+                        for i,v in ipairs(self.zsort) do
+                            local object=self.objects[v.id]
+                            local type=self.objectTypes[object.type]
+                            if self:mouseCollide(object)  then
+                                didlight=true 
+                                litId=i
+                            end
                         end
                     end
                 end
 
-                for i,v in ipairs(zsort) do
+                for i,v in ipairs(self.zsort) do
                     local object=self.objects[v.id]
                     local type=self.objectTypes[object.type]
                     if didlight and litId==i then
@@ -238,7 +246,7 @@ return {
                 else
                     --if there is no draw function and there is an image, just draw the image relative to camera coords.
                     if layer.image~=nil then
-                        love.graphics.draw(layer.image, x+self.layers[layer].x, y+self.layers[layer].y)
+                        love.graphics.draw(layer.image, x+layer.x, y+layer.y)
                     end
                 end
                 self:drawObjects(il, x, y)   
@@ -406,8 +414,8 @@ return {
                     end
                     if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
 
-                    love.graphics.draw(obj.image, x, y+7, 0, scale, scale)
-                    love.graphics.print(v, x, (windowHt))
+                    love.graphics.draw(obj.image, x, y+4, 0, scale, scale)
+                    love.graphics.print(v, x+1, (windowHt-5))
                     x=x+windowHt-8
                 end
                 love.graphics.setColor(1, 1, 1, 1) 
