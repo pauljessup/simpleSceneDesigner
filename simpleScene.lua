@@ -288,10 +288,11 @@ return {
             end,
             mouseOverObject=function(self)
                 if self.dropObject==nil and self.dragNDrop==nil then
-                        for i,v in ipairs(self.objects) do
-                            if self:mouseCollide(v) then
+                        for i,v in ipairs(self.zsort) do
+                            local object=self.objects[v.id]
+                            if self:mouseCollide(object) then
                                 if love.mouse.isDown(1) then
-                                    self.dragNDrop=i
+                                    self.dragNDrop=v.id
                                 end
                             end
                         end
