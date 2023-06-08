@@ -14,25 +14,14 @@ function love.load()
 
     simpleScene:addSceneType({type="nightscene", vars={}})
     simpleScene:addLayerType({type="basic", vars={}})
-    simpleScene:addObjectType({type="npc", image=love.graphics.newImage("emily.png"),
-                                update=function(self, object, dt)
-                                    --neat.
-                                end,
-                                draw=function(self, object)
-                                    love.graphics.draw(self.image, object.x, object.y)
-                                end,
-                                })
+            simpleScene:addObjectType({type="npc", image=love.graphics.newImage("emily.png"),
+                                        draw=function(self, object)
+                                            love.graphics.draw(self.image, object.x, object.y)
+                                        end,
+                                        })
 
-    simpleScene:addObjectType({type="tree", image=love.graphics.newImage("tree.png"),
-                                update=function(self, object, dt)
-                                    --neat.
-                                end,
-                                draw=function(self, object)
-                                    love.graphics.draw(self.image, object.x, object.y)
-                                end,
-                                })
-
-    simpleScene:newScene({name="start", tyep="nightscene", width=100, height=100, x=0, y=0})
+            simpleScene:addObjectType({type="tree", image=love.graphics.newImage("tree.png") })
+    simpleScene:newScene({name="start", tyep="nightscene", x=0, y=0})
     simpleScene:addLayer({image=love.graphics.newImage("map.png"), x=0, y=0, type="basic"})
     simpleScene:addObject({type="npc", x=100, y=20})
     simpleScene:startEditing()

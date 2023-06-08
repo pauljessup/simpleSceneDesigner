@@ -262,6 +262,19 @@ return {
                         love.graphics.draw(layer.image, x+layer.x, y+layer.y)
                     end
                 end
+                --draw the grid if in editor and grid is set.
+                if self.editing then
+                    if self.useGrid==true then
+                        love.graphics.setColor(1, 1, 1, 0.12)
+                        for x=0, self.size.width, self.gridSize do
+                            love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, self.size.height)
+                        end
+                        for y=0, self.size.width, self.gridSize do
+                            love.graphics.line((-self.x), (-self.y)+y, self.size.width, (-self.y)+y)
+                        end
+                        love.graphics.setColor(1, 1, 1, 1)
+                    end
+                end
                 self:drawObjects(il, x, y)   
             end,
             draw=function(self, x, y)
@@ -300,7 +313,7 @@ return {
                 return false
             end,
             mouseOverObject=function(self)
-                        if  self.dragNDrop==nil then
+                        if  self.dragNDrop==nil and self.dropState=="move" then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     if self:mouseCollide(object) then
@@ -311,31 +324,28 @@ return {
                                     end
                                 end
                         end
-                        if self.dragNDrop~=nil and self.dropState=="move" then
+                        if self.dragNDrop~=nil and self.dropState=="move" and self.cooldown==0.0 then
                             local mx, my=self:scaleMousePosition()
-                            --draw it being moved.
-                            local obj=self.objects[self.dragNDrop]
-                            obj.x=mx-(obj.width/2) 
-                            obj.y=my-(obj.height/2)
-                            --if mouse is let go, drop object there.
-                            if love.mouse.isDown(1)==false and self.cooldown==0.0 then
-                                self.cooldown=1.0
-                                self.dragNDrop=nil
+                            local windowH=self.topMenuSize
+                            if self.topMenuHide==true then windowH=16 end
+                            if my>(windowH+32)then
+                                --draw it being moved.
+                                local obj=self.objects[self.dragNDrop]
+                                obj.x=mx-(obj.width/2) 
+                                obj.y=my-(obj.height/2)
+                                if self.useGrid then 
+                                    obj.x=self.gridSize*(math.floor(obj.x/self.gridSize)) 
+                                    obj.y=self.gridSize*(math.floor(obj.y/self.gridSize)) 
+                                end
+                                --if mouse is let go, drop object there.
+                                if love.mouse.isDown(1)==false and self.cooldown==0.0 then
+                                    self.cooldown=1.0
+                                    self.dragNDrop=nil
+                                end
                             end
                         end
             end,
             drawEditor=function(self)
-                --show grid up needed.
-                love.graphics.setColor(1, 1, 1, 0.12)
-                if self.useGrid==true then
-                    for x=0, self.size.width, self.gridSize do
-                        love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, self.size.height)
-                    end
-                    for y=0, self.size.width, self.gridSize do
-                        love.graphics.line((-self.x), (-self.y)+y, self.size.width, (-self.y)+y)
-                    end
-                end
-                love.graphics.setColor(1, 1, 1, 1)
                 self:drawTopMenu()
                 local mx, my=self:scaleMousePosition()
 
@@ -346,7 +356,15 @@ return {
                     if self.topMenuHide==true then windowH=16 end
                     if my>(windowH+32)then
                         love.graphics.setColor(1, 1, 1, 0.7)
-                        love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
+                        if self.useGrid then 
+                            mx=self.gridSize*(math.floor(mx/self.gridSize)) 
+                            my=self.gridSize*(math.floor(my/self.gridSize)) 
+                        end
+                        if obj.draw~=nil then 
+                            obj:draw({x=mx-(obj.width/2), y=my-(obj.height/2)})
+                        else
+                            love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
+                        end
                         love.graphics.setColor(1, 1, 1, 1)
                     end
                 end
@@ -492,15 +510,12 @@ return {
                             if self.dropObject~=i then 
                                 self.dropObject=i 
                                 self.dropState="drop"
-                            else
-                                self.dropObject=nil
-                                self.dropState="move"
                             end
                         end
                     end
-                    if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
-
+                    if self.dropObject==i and self.dropState=="move" then love.graphics.setColor(1, 1, 1, 1) end
                     love.graphics.draw(obj.image, x, y+4, 0, scale, scale)
+                
                     love.graphics.print(v, x+1, (windowHt-5))
                     x=x+windowHt-8
                 end
@@ -523,6 +538,10 @@ return {
                             if self.topMenuHide==true then windowH=16 end
                             if my>(windowH+16) then
                                 self.cooldown=1.0
+                                if self.useGrid then 
+                                    mx=self.gridSize*(math.floor(mx/self.gridSize)) 
+                                    my=self.gridSize*(math.floor(my/self.gridSize)) 
+                                end
                                 self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
                             end
                         end
