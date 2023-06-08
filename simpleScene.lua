@@ -313,7 +313,7 @@ return {
                 return false
             end,
             mouseOverObject=function(self)
-                        if  self.dragNDrop==nil and self.dropState=="move" then
+                        if  self.dragNDrop==nil and self.dropState=="move" and self.cooldown==0.0 then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     if self:mouseCollide(object) then
@@ -325,7 +325,7 @@ return {
                                 end
                         end
                         
-                        if self.dragNDrop~=nil and self.dropState=="move" and self.cooldown==0.0 then
+                        if self.dragNDrop~=nil and self.dropState=="move" then
                             local mx, my=self:scaleMousePosition()
                             local windowH=self.topMenuSize
                             if self.topMenuHide==true then windowH=16 end
