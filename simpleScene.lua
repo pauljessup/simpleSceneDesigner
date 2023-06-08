@@ -233,7 +233,7 @@ return {
                     if type.draw~=nil then
                             type:draw(object, x, y, self.editing) 
                     elseif type.image~=nil then
-                        type:draw(type.image, object.x+x, object.y+y) 
+                        love.graphics.draw(type.image, object.x+x, object.y+y)
                     end
                     love.graphics.setColor(1, 1, 1, 1)
                 end
