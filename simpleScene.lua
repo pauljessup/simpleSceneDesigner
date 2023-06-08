@@ -317,7 +317,7 @@ return {
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     if self:mouseCollide(object) then
-                                        if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                        if love.mouse.isDown(1) then
                                             self.cooldown=1.0
                                             self.dragNDrop=v.id
                                         end
