@@ -300,31 +300,29 @@ return {
                 return false
             end,
             mouseOverObject=function(self)
-                if self.dropState=="move" then
                         if  self.dragNDrop==nil then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     if self:mouseCollide(object) then
-                                        if love.mouse.isDown(1) then
+                                        if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                            self.cooldown=1.0
                                             self.dragNDrop=v.id
                                         end
                                     end
                                 end
                         end
-                        if self.dragNDrop~=nil then
+                        if self.dragNDrop~=nil and self.dropState=="move" then
                             local mx, my=self:scaleMousePosition()
                             --draw it being moved.
                             local obj=self.objects[self.dragNDrop]
                             obj.x=mx-(obj.width/2) 
                             obj.y=my-(obj.height/2)
                             --if mouse is let go, drop object there.
-                            if love.mouse.isDown(1)==false then
+                            if love.mouse.isDown(1)==false and self.cooldown==0.0 then
+                                self.cooldown=1.0
                                 self.dragNDrop=nil
                             end
                         end
-                elseif self.dropState=="del" then
-                    
-                end
             end,
             drawEditor=function(self)
                 --show grid up needed.
@@ -342,7 +340,7 @@ return {
                 local mx, my=self:scaleMousePosition()
 
                 --show object under mouse to drop
-                if self.dropObject~=nil then
+                if self.dropObject~=nil and self.dropState=="drop" then
                     local obj=self.objectTypes[self.editorObject[self.dropObject]]
                     local windowH=self.topMenuSize
                     if self.topMenuHide==true then windowH=16 end
@@ -518,7 +516,7 @@ return {
                     --drop an object on the map
                     
                     if love.mouse.isDown(1) and self.cooldown==0.0 then
-                        if self.dropObject~=nil then
+                        if self.dropObject~=nil and self.dropState=="drop" then
                             local type=self.editorObject[self.dropObject]
                             local obj=self.objectTypes[type]
                             local windowH=self.topMenuSize+16
