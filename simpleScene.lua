@@ -324,6 +324,7 @@ return {
                                     end
                                 end
                         end
+                        
                         if self.dragNDrop~=nil and self.dropState=="move" and self.cooldown==0.0 then
                             local mx, my=self:scaleMousePosition()
                             local windowH=self.topMenuSize
@@ -513,7 +514,7 @@ return {
                             end
                         end
                     end
-                    if self.dropObject==i and self.dropState=="move" then love.graphics.setColor(1, 1, 1, 1) end
+                    if self.dropObject==i then love.graphics.setColor(1, 1, 1, 1) end
                     love.graphics.draw(obj.image, x, y+4, 0, scale, scale)
                 
                     love.graphics.print(v, x+1, (windowHt-5))
