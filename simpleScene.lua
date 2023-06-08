@@ -384,12 +384,16 @@ return {
                 end                
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
+            drawObjectMenu=function(self)
+                --draws an object menu for different tools, etc. Placing via grid (or not),
+                --deleting or moving instead of placing object
+            end,
             drawObjectDropper=function(self)
                 local windowHt=self.topMenuSize
                 local windowWidth=(love.graphics.getWidth()/self.scale.x)
                 local font=love.graphics.getFont()
                 local x, y=14, font:getHeight()+2
-                local pgTotal=(((love.graphics.getWidth()/self.scale.x)-32)/(windowHt-8))
+                local pgTotal=(((love.graphics.getWidth()/self.scale.x)-120)/(windowHt-8))
 
                 if self.objPageAt>1 then
                                     --draw left and right arrow, if necassary.
@@ -402,8 +406,8 @@ return {
                 end
                 if (self.objPageAt+pgTotal)<#self.editorObject then
                                     --draw left and left arrow, if necassary.
-                                    love.graphics.draw(self.guiImages.arrow, (love.graphics.getWidth()/self.scale.x), 26, math.rad(90))
-                                    if self:mouseCollide({x=(love.graphics.getWidth()/self.scale.x)-16, y=32, height=32, width=16}) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                                    love.graphics.draw(self.guiImages.arrow, (love.graphics.getWidth()/self.scale.x)-70, 26, math.rad(90))
+                                    if self:mouseCollide({x=(love.graphics.getWidth()/self.scale.x)-80, y=32, height=32, width=16}) and love.mouse.isDown(1) and self.cooldown==0.0 then
                                         self.cooldown=1.0
                                         self.objPageAt=self.objPageAt+1
                                         if self.objPageAt>(#self.editorObject-6) then self.objPageAt=(#self.editorObject-6) end
