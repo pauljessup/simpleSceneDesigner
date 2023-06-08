@@ -4,6 +4,8 @@ local folderOfThisFile = (...):match("(.-)[^%.]+$")
 local function drawSort(a,b) return a.y+a.h < b.y+b.h end
 
 return {
+            dropState="move",
+            useGrid=false,
             activeLayer=0,
             objPageAt=1,
             sceneTypes={},
@@ -41,7 +43,11 @@ return {
 
                 --now we load the gui images for the editor.
                 self.guiImages={
-                                    arrow=love.graphics.newImage(self.directories.editor .. "/arrow.png")
+                                    arrow=love.graphics.newImage(self.directories.editor .. "/arrow.png"),
+                                    gridButton=love.graphics.newImage(self.directories.editor .. "/gridDrop.png"),
+                                    objDrop=love.graphics.newImage(self.directories.editor .. "/objectdrop.png"),
+                                    objDel=love.graphics.newImage(self.directories.editor .. "/deleteobject.png"),
+                                    objMove=love.graphics.newImage(self.directories.editor .. "/objectmove.png"),
                 } 
            end,
            setWindowColor=function(self, font, background, border)
@@ -109,8 +115,14 @@ return {
                     self.x=vars.x
                     self.y=vars.y
                 end
+                if vars.x==nil then vars.x=0 end
+                if vars.y==nil then vars.y=0 end
+                if vars.gridSize~=nil then self.gridSize=vars.gridSize else self.gridSize=8 end
+
                 if vars.width~=nil and vars.height~=nil then
                     self.size={width=vars.width, height=vars.height}
+                else
+                    self.size={width=love.graphics:getWidth(), height=love.graphics:getHeight()}
                 end
                 self.vars=vars.vars
             end,
@@ -288,29 +300,44 @@ return {
                 return false
             end,
             mouseOverObject=function(self)
-                if self.dropObject==nil and self.dragNDrop==nil then
-                        for i,v in ipairs(self.zsort) do
-                            local object=self.objects[v.id]
-                            if self:mouseCollide(object) then
-                                if love.mouse.isDown(1) then
-                                    self.dragNDrop=v.id
+                if self.dropState=="move" then
+                        if  self.dragNDrop==nil then
+                                for i,v in ipairs(self.zsort) do
+                                    local object=self.objects[v.id]
+                                    if self:mouseCollide(object) then
+                                        if love.mouse.isDown(1) then
+                                            self.dragNDrop=v.id
+                                        end
+                                    end
                                 end
+                        end
+                        if self.dragNDrop~=nil then
+                            local mx, my=self:scaleMousePosition()
+                            --draw it being moved.
+                            local obj=self.objects[self.dragNDrop]
+                            obj.x=mx-(obj.width/2) 
+                            obj.y=my-(obj.height/2)
+                            --if mouse is let go, drop object there.
+                            if love.mouse.isDown(1)==false then
+                                self.dragNDrop=nil
                             end
                         end
-                end
-                if self.dragNDrop~=nil then
-                    local mx, my=self:scaleMousePosition()
-                    --draw it being moved.
-                    local obj=self.objects[self.dragNDrop]
-                    obj.x=mx-(obj.width/2) 
-                    obj.y=my-(obj.height/2)
-                    --if mouse is let go, drop object there.
-                    if love.mouse.isDown(1)==false then
-                        self.dragNDrop=nil
-                    end
+                elseif self.dropState=="del" then
+                    
                 end
             end,
             drawEditor=function(self)
+                --show grid up needed.
+                love.graphics.setColor(1, 1, 1, 0.12)
+                if self.useGrid==true then
+                    for x=0, self.size.width, self.gridSize do
+                        love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, self.size.height)
+                    end
+                    for y=0, self.size.width, self.gridSize do
+                        love.graphics.line((-self.x), (-self.y)+y, self.size.width, (-self.y)+y)
+                    end
+                end
+                love.graphics.setColor(1, 1, 1, 1)
                 self:drawTopMenu()
                 local mx, my=self:scaleMousePosition()
 
@@ -383,10 +410,40 @@ return {
                     end
                 end                
             end,
+            updateObjectMenu=function(self)
+                local x,y=(love.graphics.getWidth()/self.scale.x)-52, 20
+                    if love.mouse.isDown(1) and self.cooldown==0.0 and self:mouseCollide({x=x, y=y, width=48, height=48})  then
+                        self.cooldown=1.0
+                        if self:mouseCollide({x=x, y=y, width=24, height=24}) then self.dropState="drop" end
+                        if self:mouseCollide({x=x+24, y=y, width=24, height=24}) then self.dropState="delete" end
+                        if self:mouseCollide({x=x, y=y+24, width=24, height=24}) then self.dropState="move" self.dropObject=nil end
+                        if self:mouseCollide({x=x+24, y=y+24, width=24, height=24}) then self.useGrid=not self.useGrid end
+                    end
+            end,
+            drawButton=function(self, image, x, y, lighten, tooltip)
+                if lighten then love.graphics.setColor(1, 1, 1, 1) else love.graphics.setColor(0.5, 0.5, 0.5, 1) end
+                love.graphics.draw(image, x, y)
+                if self:mouseCollide({x=x, y=y, width=24, height=24}) then
+                    local font=love.graphics.getFont()
+                    local w, h=font:getWidth(tooltip), font:getHeight(tooltip)
+                    love.graphics.setColor(0, 0, 0, 0.5)
+                    love.graphics.rectangle("fill", (x-(w/2))-2, (y-2)-h, w+4, h+4)
+                    love.graphics.setColor(1, 1, 1, 1)
+                    love.graphics.print(tooltip, x-(w/2), y-h)
+                end
+                love.graphics.setColor(1, 1, 1, 1)
+            end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectMenu=function(self)
                 --draws an object menu for different tools, etc. Placing via grid (or not),
                 --deleting or moving instead of placing object
+                local x,y=(love.graphics.getWidth()/self.scale.x)-52, 20
+                local mx, my=self:scaleMousePosition()
+                
+                self:drawButton(self.guiImages.objDrop, x, y, (self.dropState=="drop"), "place object")
+                self:drawButton(self.guiImages.objDel, x+24, y, (self.dropState=="delete"), "delete object")
+                self:drawButton(self.guiImages.objMove, x, y+24, (self.dropState=="move"), "move object")
+                self:drawButton(self.guiImages.gridButton, x+24, y+24, self.useGrid, "use grid")
             end,
             drawObjectDropper=function(self)
                 local windowHt=self.topMenuSize
@@ -406,8 +463,8 @@ return {
                 end
                 if (self.objPageAt+pgTotal)<#self.editorObject then
                                     --draw left and left arrow, if necassary.
-                                    love.graphics.draw(self.guiImages.arrow, (love.graphics.getWidth()/self.scale.x)-70, 26, math.rad(90))
-                                    if self:mouseCollide({x=(love.graphics.getWidth()/self.scale.x)-80, y=32, height=32, width=16}) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                                    love.graphics.draw(self.guiImages.arrow, (love.graphics.getWidth()/self.scale.x)-68, 26, math.rad(90))
+                                    if self:mouseCollide({x=(love.graphics.getWidth()/self.scale.x)-78, y=32, height=32, width=16}) and love.mouse.isDown(1) and self.cooldown==0.0 then
                                         self.cooldown=1.0
                                         self.objPageAt=self.objPageAt+1
                                         if self.objPageAt>(#self.editorObject-6) then self.objPageAt=(#self.editorObject-6) end
@@ -436,8 +493,10 @@ return {
                             self.cooldown=1.0
                             if self.dropObject~=i then 
                                 self.dropObject=i 
+                                self.dropState="drop"
                             else
                                 self.dropObject=nil
+                                self.dropState="move"
                             end
                         end
                     end
@@ -448,6 +507,7 @@ return {
                     x=x+windowHt-8
                 end
                 love.graphics.setColor(1, 1, 1, 1) 
+                self:drawObjectMenu()
             end,
             updateEditor=function(self, dt)
                     self:mouseOverObject()
@@ -487,6 +547,8 @@ return {
                             end
                         end
                     end
-
+                    if self.topMenuHide==false and self.editorState=="objs" then
+                        self:updateObjectMenu()
+                    end
             end,
 }
