@@ -389,6 +389,7 @@ return {
                 local windowWidth=(love.graphics.getWidth()/self.scale.x)
                 local font=love.graphics.getFont()
                 local x, y=14, font:getHeight()+2
+                local pgTotal=(((love.graphics.getWidth()/self.scale.x)-32)/(windowHt-8))
 
                 if self.objPageAt>1 then
                                     --draw left and right arrow, if necassary.
@@ -399,7 +400,7 @@ return {
                                         if self.objPageAt<1 then self.objPageAt=1 end
                                     end
                 end
-                if (self.objPageAt+6)<#self.editorObject then
+                if (self.objPageAt+pgTotal)<#self.editorObject then
                                     --draw left and left arrow, if necassary.
                                     love.graphics.draw(self.guiImages.arrow, (love.graphics.getWidth()/self.scale.x), 26, math.rad(90))
                                     if self:mouseCollide({x=(love.graphics.getWidth()/self.scale.x)-16, y=32, height=32, width=16}) and love.mouse.isDown(1) and self.cooldown==0.0 then
@@ -408,7 +409,10 @@ return {
                                         if self.objPageAt>(#self.editorObject-6) then self.objPageAt=(#self.editorObject-6) end
                                     end
                 end
-                for i=self.objPageAt, self.objPageAt+6 do
+                local total=self.objPageAt+pgTotal
+                if total>#self.editorObject then total=#self.editorObject end
+
+                for i=self.objPageAt, total do
                     v=self.editorObject[i]
                     local obj=self.objectTypes[v]
                     --if object image is larger than window, scale to fit.
