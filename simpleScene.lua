@@ -160,6 +160,9 @@ return {
                 self.objects[data.id]=data
             end,
             update=function(self, dt)
+                if self.editing==true then
+                    self:updateEditor(dt)
+                end
                 if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].update~=nil then
                     self.sceneTypes[self.type]:update(dt)
                 end
@@ -179,9 +182,6 @@ return {
                 end
 
                 table.sort(self.zsort, drawSort)
-                if self.editing==true then
-                    self:updateEditor(dt)
-                end
             end,
             drawButton=function(self)
                 --draw all the editor buttons on the main screen.
@@ -224,7 +224,7 @@ return {
                 local didlight, litId=false, 0
 
                 if self.editing then
-                    if self.editing and self.dragNDrop==nil and self.dropObject==nil then
+                    if self.dropObject==nil then
                         for i,v in ipairs(self.zsort) do
                             local object=self.objects[v.id]
                             local type=self.objectTypes[object.type]
@@ -313,7 +313,7 @@ return {
                 return false
             end,
             mouseOverObject=function(self)
-                        if  self.dragNDrop==nil and self.dropState=="move" and self.cooldown==0.0 then
+                        if  self.dragNDrop==nil and (self.dropState=="move" or self.dropState=="delete") and self.cooldown==0.0 then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     if self:mouseCollide(object) then
@@ -323,6 +323,10 @@ return {
                                         end
                                     end
                                 end
+                        end
+                        if self.dragNDrop~=nil and self.dropState=="delete" then
+                            table.remove(self.objects, self.dragNDrop)
+                            self.dragNDrop=nil
                         end
                         
                         if self.dragNDrop~=nil and self.dropState=="move" then
@@ -432,7 +436,7 @@ return {
                     if love.mouse.isDown(1) and self.cooldown==0.0 and self:mouseCollide({x=x, y=y, width=48, height=48})  then
                         self.cooldown=1.0
                         if self:mouseCollide({x=x, y=y, width=24, height=24}) then self.dropState="drop" end
-                        if self:mouseCollide({x=x+24, y=y, width=24, height=24}) then self.dropState="delete" end
+                        if self:mouseCollide({x=x+24, y=y, width=24, height=24}) then self.dropState="delete" self.dropObject=nil end
                         if self:mouseCollide({x=x, y=y+24, width=24, height=24}) then self.dropState="move" self.dropObject=nil end
                         if self:mouseCollide({x=x+24, y=y+24, width=24, height=24}) then self.useGrid=not self.useGrid end
                     end
