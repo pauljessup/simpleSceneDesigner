@@ -224,15 +224,20 @@ return {
                 local didlight, litId=false, 0
 
                 if self.editing then
-                    if self.dropObject==nil then
-                        for i,v in ipairs(self.zsort) do
-                            local object=self.objects[v.id]
-                            local type=self.objectTypes[object.type]
-                            if self:mouseCollide(object)  then
-                                didlight=true 
-                                litId=i
+                    local mx, my=self:scaleMousePosition()
+                    local windowH=self.topMenuSize+16
+                    if self.topMenuHide==true then windowH=16 end
+                    if my>(windowH+16) then
+                            if self.dropObject==nil then
+                                for i,v in ipairs(self.zsort) do
+                                    local object=self.objects[v.id]
+                                    local type=self.objectTypes[object.type]
+                                    if self:mouseCollide(object)  then
+                                        didlight=true 
+                                        litId=i
+                                    end
+                                end
                             end
-                        end
                     end
                 end
 
@@ -313,6 +318,12 @@ return {
                 return false
             end,
             mouseOverObject=function(self)
+                --make sure you can't accidently select things hidden behind the windows.
+                local mx, my=self:scaleMousePosition()
+                local windowH=self.topMenuSize+16
+                if self.topMenuHide==true then windowH=16 end
+                if my>(windowH+16) then
+
                         if  self.dragNDrop==nil and (self.dropState=="move" or self.dropState=="delete") and self.cooldown==0.0 then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
@@ -349,6 +360,7 @@ return {
                                 end
                             end
                         end
+                end
             end,
             drawEditor=function(self)
                 self:drawTopMenu()
