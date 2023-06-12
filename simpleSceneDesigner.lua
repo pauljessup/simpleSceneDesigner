@@ -220,7 +220,7 @@ return {
                     return self.objects[id]
                 end
             end,
-            drawObjects=function(self, layer, x, y)
+            drawObjects=function(self, layer)
                 local didlight, litId=false, 0
 
                 if self.editing then
@@ -233,7 +233,7 @@ return {
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     local type=self.objectTypes[object.type]
-                                    if self:mouseCollide(object)  then
+                                    if self:mouseCollide(object) and object.layer==self.activeLayer  then
                                         didlight=true 
                                         litId=i
                                     end
@@ -244,16 +244,18 @@ return {
 
                 for i,v in ipairs(self.zsort) do
                     local object=self.objects[v.id]
-                    local type=self.objectTypes[object.type]
-                    if didlight and litId==i then
-                            love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                    if object.layer==layer then
+                            local type=self.objectTypes[object.type]
+                            if didlight and litId==i then
+                                    love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                            end
+                            if type.draw~=nil then
+                                    type:draw(object, x, y, self.editing) 
+                            elseif type.image~=nil then
+                                love.graphics.draw(type.image, object.x, object.y)
+                            end
+                            love.graphics.setColor(1, 1, 1, 1)
                     end
-                    if type.draw~=nil then
-                            type:draw(object, x, y, self.editing) 
-                    elseif type.image~=nil then
-                        love.graphics.draw(type.image, object.x+x, object.y+y)
-                    end
-                    love.graphics.setColor(1, 1, 1, 1)
                 end
             end,
             drawLayer=function(self, x, y, layer)
@@ -291,7 +293,7 @@ return {
                         self:mouseDrop()
                     end
                 end
-                self:drawObjects(il, x, y) 
+                self:drawObjects(layer.id) 
                 love.graphics.setCanvas()
                 love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
                 love.graphics.draw(layer.canvas, layer.x, layer.y, 0, self.scale.x, self.scale.y)
@@ -420,7 +422,7 @@ return {
                         if  self.dragNDrop==nil and (self.editState=="move" or self.editState=="delete") and self.cooldown==0.0 then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
-                                    if self:mouseCollide(object, false) then
+                                    if object.layer==self.activeLayer and self:mouseCollide(object, false) then
                                         if love.mouse.isDown(1) then
                                             self.cooldown=1.0
                                             self.dragNDrop=v.id
@@ -447,7 +449,7 @@ return {
                                     obj.y=self.gridSize*(math.floor(obj.y/self.gridSize)) 
                                 end
                                 --if mouse is let go, drop object there.
-                                if love.mouse.isDown(1)==false and self.cooldown==0.0 then
+                                if  love.mouse.isDown(1)==false and self.cooldown==0.0 then
                                     self.cooldown=1.0
                                     self.dragNDrop=nil
                                 end
@@ -499,7 +501,7 @@ return {
                     love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+16, 0, 1, -1)
                 end
 
-                love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                --love.graphics.setColor(0.5, 0.5, 0.5, 1)
                 local xspot=windowWidth-(font:getWidth("using:"))
                 love.graphics.print("using: ", xspot-32, 0)
                 local img=self.guiImages.objDrop
@@ -509,7 +511,7 @@ return {
                 love.graphics.draw(img, xspot+15, 0)
 
                 love.graphics.print("working layer: " .. self.activeLayer, xspot-32-(font:getWidth("working layer:         ")))
-                love.graphics.setColor(1, 1, 1, 1)
+                --love.graphics.setColor(1, 1, 1, 1)
 
             end,
             drawTopMenu=function(self)
@@ -565,6 +567,24 @@ return {
                         local y=y+font:getHeight()
                         self.layers[self.activeLayer].scroll.constant=self:updateCheckbox("constant speed", x, y, self.layers[self.activeLayer].scroll.constant)
          
+                    
+                        x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
+                        if self:mouseCollide({x=x, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                                self.cooldown=1.0
+                                self:addLayer({x=0, y=0, type="basic"}) 
+                                self.activeLayer=self.activeLayer+1
+                        end         
+                        if self:mouseCollide({x=x+24, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.cooldown=1.0
+                            self.activeLayer=self.activeLayer+1
+                            if self.activeLayer>#self.layers then self.activeLayer=#self.layers end
+                        end
+                        if self:mouseCollide({x=x+48, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.cooldown=1.0
+                            self.activeLayer=self.activeLayer-1
+                            if self.activeLayer<1 then self.activeLayer=1 end
+                        end
+        
                     --[[
                         local y=y+font:getHeight()
 
@@ -773,7 +793,7 @@ return {
                                                         mx=self.gridSize*(math.floor(mx/self.gridSize)) 
                                                         my=self.gridSize*(math.floor(my/self.gridSize)) 
                                                     end
-                                                    self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
+                                                    self:addObject({type=type, layer=self.activeLayer, x=mx-(obj.width/2), y=my-(obj.height/2)})
                                                 end
                                             end
                                         end
