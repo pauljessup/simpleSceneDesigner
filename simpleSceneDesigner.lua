@@ -63,6 +63,8 @@ return {
                                     tileLayer=love.graphics.newImage(self.directories.editor .. "/tileLayer.png"),
                                     plus=love.graphics.newImage(self.directories.editor .. "/up.png"),
                                     minus=love.graphics.newImage(self.directories.editor .. "/down.png"),
+                                    checkYes=love.graphics.newImage(self.directories.editor .. "/checkyes.png"),
+                                    checkNo=love.graphics.newImage(self.directories.editor .. "/checkno.png"),
                 } 
                 -- add basic types
                 simpleScene:addLayerType({type="basic", vars={}})
@@ -135,7 +137,12 @@ return {
                 binser.writeFile(self.path .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
             end,
             addLayer=function(self, data)
-                if data.speed==nil then data.speed=1.0 end
+                if data.scroll==nil then
+                    data.scroll={}
+                    data.scroll.speed=1.0
+                    data.scroll.constant=false
+                end
+
                 if data.alpha==nil then data.alpha=1.0 end 
                 if data.x==nil then data.x=0 end
                 if data.y==nil then data.y=0 end
@@ -551,8 +558,12 @@ return {
                         x=8
                         y=y+5
                         local y=y+font:getHeight()
-                        self.layers[self.activeLayer].speed=self:updateNumberBox("scroll speed", x, y, self.layers[self.activeLayer].speed)
-                        if self.layers[self.activeLayer].speed>5 then self.layers[self.activeLayer].speed=5 end
+                        self.layers[self.activeLayer].scroll.speed=self:updateNumberBox("scroll speed", x, y, self.layers[self.activeLayer].scroll.speed)
+                        if self.layers[self.activeLayer].scroll.speed>5 then self.layers[self.activeLayer].scroll.speed=5 end
+
+                        y=y+5
+                        local y=y+font:getHeight()
+                        self.layers[self.activeLayer].scroll.constant=self:updateCheckbox("constant speed", x, y, self.layers[self.activeLayer].scroll.constant)
          
                     --[[
                         local y=y+font:getHeight()
@@ -590,7 +601,7 @@ return {
                         end
                         x=x+self.guiImages.plus:getWidth()
                         love.graphics.print(" " .. data, x, y)
-                        x=x+font:getWidth(" " .. data)
+                        x=x+font:getWidth(" 0.99")
                         if self:mouseCollide({x=x, y=y, width=16, height=16}, true) then
                             if love.mouse.isDown(1) and self.cooldown==0.0 then
                                 self.cooldown=1.0
@@ -606,9 +617,33 @@ return {
                 x=x+font:getWidth(name .. ": ")
                 self:drawButton(self.guiImages.plus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "increase " .. name)
                 x=x+self.guiImages.plus:getWidth()
-                love.graphics.print(" " .. data, x, y)
-                x=x+font:getWidth(" " .. data)
+                local toshow=tostring(data)
+                if string.len(toshow)==1 then toshow=toshow .. ".00" end
+                if string.len(toshow)==3 then toshow=toshow .. "0" end
+
+                love.graphics.print(" " .. toshow, x, y)
+                x=x+font:getWidth(" 0.99")
                 self:drawButton(self.guiImages.minus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "decrease " .. name)
+            end,
+            updateCheckbox=function(self, name, x, y, data)
+                local font=love.graphics.getFont()
+                x=x+font:getWidth(name .. ": ")
+                if self:mouseCollide({x=x, y=y, width=16, height=16}, true) then
+                    if love.mouse.isDown(1) and self.cooldown==0.0 then
+                        self.cooldown=1.0
+                        data=not data
+                    end
+                end
+                return data
+            end,
+            drawCheckbox=function(self, name, x, y, data)
+                local img=self.guiImages.checkNo
+                local font=love.graphics.getFont()
+
+                if data==true then img=self.guiImages.checkYes end
+                love.graphics.print(name ..": ", x, y)
+                x=x+font:getWidth(name .. ": ")
+                self:drawButton(img, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "set " .. name)
             end,
             drawLayerMenu=function(self)
                 --parallax: x speed, yspeed  constant or relative
@@ -621,8 +656,11 @@ return {
                 x=8
                 y=y+5
                 local y=y+font:getHeight()
-                self:numberBox("scroll speed", x, y, self.layers[self.activeLayer].speed)
+                self:numberBox("scroll speed", x, y, self.layers[self.activeLayer].scroll.speed)
  
+                y=y+5
+                local y=y+font:getHeight()
+                self:drawCheckbox("constant scroll", x, y, self.layers[self.activeLayer].scroll.constant)
 
 
                 --draws an object menu for different tools, etc. Placing via grid (or not),
