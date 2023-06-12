@@ -1,5 +1,5 @@
 --this will be the main example file.
-simpleScene=require("simpleScene")
+simpleScene=require("simpleSceneDesigner")
 love.graphics.setDefaultFilter("nearest","nearest")
 
 
@@ -23,7 +23,7 @@ function love.load()
                                         })
 
             simpleScene:addObjectType({type="tree", image=love.graphics.newImage("tree.png") })
-            
+
     simpleScene:newScene({name="start", tyep="nightscene", x=0, y=0})
     simpleScene:addLayer({image=love.graphics.newImage("map.png"), x=0, y=0, type="basic"})
     simpleScene:addObject({type="npc", x=100, y=20})
