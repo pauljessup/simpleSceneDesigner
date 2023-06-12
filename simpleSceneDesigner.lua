@@ -1,23 +1,9 @@
----OKAY
--- NEED TO RESTRUCTURE, NOW THAT WE HAVE THE BASIC PROOF OF CONCEPT.
--- SPLIT INTO FILESYS, DESIGNER, PLAYER
--- CANVAS- ONE FOR EACH LAYER
--- ONE FOR EDITOR
---ONE FOR SCENE
--- SCALING SEPERATE FROM SCENE AND EDITOR
--- MAKE IT SO BUTTON WIDTH/HEIGHT IS TAKEN FROM IMAGE, NOT HARDCODED.
--- MAKE IT SO EDITOR ISN'T SCALED, BUT SCENE IS, AND GET BE SCALED ON THE FLY
--- AND HAVE MOUSE X/Y UPDATE ON THE FLY.
-
-
---this allows people to move this file + binser to other directories
---and not have to update the file by hand, etc.
 local folderOfThisFile = (...):match("(.-)[^%.]+$")
 local function drawSort(a,b) return a.y+a.h < b.y+b.h end
 
 return {
-            dropState="move",
-            layerState="move",
+            editState="move",
+            editState="move",
             useGrid=false,
             activeLayer=1,
             objPageAt=1,
@@ -223,7 +209,7 @@ return {
                     if self.topMenuHide==true then windowH=16 end
                     if my>(windowH+16) then
                         local mx, my=self:scaleMousePosition(false)
-                            if (self.dropState=="move" or self.dropState=="delete") and self.dragNDrop==nil then
+                            if (self.editState=="move" or self.editState=="delete") and self.dragNDrop==nil then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     local type=self.objectTypes[object.type]
@@ -357,7 +343,7 @@ return {
             mouseDrop=function(self)
                 local mx, my=self:scaleMousePosition(true)
                 --show object under mouse to drop
-                if self.dropObject~=nil and self.dropState=="drop" then
+                if self.dropObject~=nil and self.editState=="drop" then
                     local obj=self.objectTypes[self.editorObject[self.dropObject]]
                     local windowH=self.topMenuSize
                     if self.topMenuHide==true then windowH=16 end
@@ -385,7 +371,7 @@ return {
                 if self.topMenuHide==true then windowH=16 end
                 if my>(windowH+16) then
 
-                        if  self.dragNDrop==nil and (self.dropState=="move" or self.dropState=="delete") and self.cooldown==0.0 then
+                        if  self.dragNDrop==nil and (self.editState=="move" or self.editState=="delete") and self.cooldown==0.0 then
                                 for i,v in ipairs(self.zsort) do
                                     local object=self.objects[v.id]
                                     if self:mouseCollide(object, false) then
@@ -396,12 +382,12 @@ return {
                                     end
                                 end
                         end
-                        if self.dragNDrop~=nil and self.dropState=="delete" then
+                        if self.dragNDrop~=nil and self.editState=="delete" then
                             table.remove(self.objects, self.dragNDrop)
                             self.dragNDrop=nil
                         end
                         
-                        if self.dragNDrop~=nil and self.dropState=="move" then
+                        if self.dragNDrop~=nil and self.editState=="move" then
                             local mx, my=self:scaleMousePosition()
                             local windowH=self.topMenuSize
                             if self.topMenuHide==true then windowH=16 end
@@ -491,9 +477,9 @@ return {
                 local x,y=(love.graphics.getWidth()/self.editorScale.x)-52, 20
                     if love.mouse.isDown(1) and self.cooldown==0.0 and self:mouseCollide({x=x, y=y, width=48, height=48}, true)  then
                         self.cooldown=1.0
-                        if self:mouseCollide({x=x, y=y, width=24, height=24}, true) then self.dropState="drop" end
-                        if self:mouseCollide({x=x+24, y=y, width=24, height=24}, true) then self.dropState="delete" self.dropObject=nil end
-                        if self:mouseCollide({x=x, y=y+24, width=24, height=24}, true) then self.dropState="move" self.dropObject=nil end
+                        if self:mouseCollide({x=x, y=y, width=24, height=24}, true) then self.editState="drop" end
+                        if self:mouseCollide({x=x+24, y=y, width=24, height=24}, true) then self.editState="delete" self.dropObject=nil end
+                        if self:mouseCollide({x=x, y=y+24, width=24, height=24}, true) then self.editState="move" self.dropObject=nil end
                         if self:mouseCollide({x=x+24, y=y+24, width=24, height=24}, true) then self.useGrid=not self.useGrid end
                     end
             end,
@@ -502,11 +488,16 @@ return {
                 love.graphics.draw(image, x, y)
                 if self:mouseCollide({x=x, y=y, width=24, height=24}, true) then
                     local font=love.graphics.getFont()
+                    local screenWidth=(love.graphics.getWidth()/self.editorScale.x)
                     local w, h=font:getWidth(tooltip), font:getHeight(tooltip)
+                    local xpos=x-(w/2)
+                    --this checks to see if the tooltip is too long for the screen, and if so, move it back some.
+                    if (xpos+w+2)>screenWidth then xpos=(screenWidth-w)-5 end
+
                     love.graphics.setColor(0, 0, 0, 0.5)
-                    love.graphics.rectangle("fill", (x-(w/2))-2, (y-2)-h, w+4, h+4)
+                    love.graphics.rectangle("fill", xpos-2, (y-2)-h, w+4, h+4)
                     love.graphics.setColor(1, 1, 1, 1)
-                    love.graphics.print(tooltip, x-(w/2), y-h)
+                    love.graphics.print(tooltip, xpos, y-h)
                 end
                 love.graphics.setColor(1, 1, 1, 1)
             end,
@@ -514,7 +505,7 @@ return {
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
-                love.graphics.print("active: " .. self.activeLayer, 8, 20)                
+                love.graphics.print("working: " .. self.activeLayer, 8, 20)                
                 local x,y=8, 20+font:getHeight()
                 love.graphics.print("total: " .. #self.layers, x, y)                
                 local y=y+font:getHeight()
@@ -530,12 +521,12 @@ return {
                 --deleting or moving instead of placing object
                 x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
                 self:drawButton(self.guiImages.newLayer, x, y, (self:mouseCollide({x=x, y=y, width=24, height=24}, true)), "newlayer")                                
-                self:drawButton(self.guiImages.layerUp, x+24, y, (self:mouseCollide({x=24, y=y, width=24, height=24}, true)), "up a layer")
+                self:drawButton(self.guiImages.layerUp, x+24, y, (self:mouseCollide({x=x+24, y=y, width=24, height=24}, true)), "up a layer")
                 self:drawButton(self.guiImages.layerDown, x+48, y, (self:mouseCollide({x=x+48, y=y, width=24, height=24,}, true)), "down a layer")
                 y=y+24
                 self:drawButton(self.guiImages.backgroundImage, x, y, (self:mouseCollide({x=x, y=y, width=24, height=24}, true)), "change background")                                
-                self:drawButton(self.guiImages.tileLayer, x+24, y, (self.layers[self.activeLayer].tiled), "tile background")
-                self:drawButton(self.guiImages.moveLayer, x+48, y, (self.layerState=="move"), "move layer")
+                self:drawButton(self.guiImages.tileLayer, x+24, y, (self.layers[self.activeLayer].tiled or self:mouseCollide({x=x+24, y=y, width=24, height=24}, true)), "tile background")
+                self:drawButton(self.guiImages.moveLayer, x+48, y, (self.editorState=="move layer" or self:mouseCollide({x=x+48, y=y, width=24, height=24}, true)), "move layer")
 
                 --self:drawButton(self.guiImages.gridButton, x+24, y+24, self.useGrid, "use grid")
             end,
@@ -545,9 +536,9 @@ return {
                 --deleting or moving instead of placing object
                 local x,y=(love.graphics.getWidth()/self.editorScale.x)-52, 20
                 
-                self:drawButton(self.guiImages.objDrop, x, y, (self.dropState=="drop"), "place object")
-                self:drawButton(self.guiImages.objDel, x+24, y, (self.dropState=="delete"), "delete object")
-                self:drawButton(self.guiImages.objMove, x, y+24, (self.dropState=="move"), "move object")
+                self:drawButton(self.guiImages.objDrop, x, y, (self.editState=="drop"), "place object")
+                self:drawButton(self.guiImages.objDel, x+24, y, (self.editState=="delete"), "delete object")
+                self:drawButton(self.guiImages.objMove, x, y+24, (self.editState=="move"), "move object")
                 self:drawButton(self.guiImages.gridButton, x+24, y+24, self.useGrid, "use grid")
             end,
             drawObjectDropper=function(self)
@@ -603,7 +594,7 @@ return {
                             self.cooldown=1.0
                             if self.dropObject~=i then 
                                 self.dropObject=i 
-                                self.dropState="drop"
+                                self.editState="drop"
                             end
                         end
                     end
@@ -625,7 +616,7 @@ return {
                     --drop an object on the map
                     
                     if love.mouse.isDown(1) and self.cooldown==0.0 then
-                        if self.dropObject~=nil and self.dropState=="drop" then
+                        if self.dropObject~=nil and self.editState=="drop" then
                             local type=self.editorObject[self.dropObject]
                             local obj=self.objectTypes[type]
                             local windowH=self.topMenuSize+16
