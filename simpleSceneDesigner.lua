@@ -115,6 +115,8 @@ return {
                 end
                 self.vars=vars.vars
                 self.canvas={scene=love.graphics.newCanvas(self.size.width, self.size.height), editor=love.graphics.newCanvas(self.size.width, self.size.height)}
+                --first blank layer--
+                simpleScene:addLayer({x=0, y=0, type="basic"})
             end,
             clean=function(self)
                 for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
@@ -132,9 +134,14 @@ return {
                 binser.writeFile(self.path .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
             end,
             addLayer=function(self, data)
+                if data.speed==nil then data.speed=1.0 end
                 if data.alpha==nil then data.alpha=1.0 end 
                 if data.x==nil then data.x=0 end
                 if data.y==nil then data.y=0 end
+                if data.image then
+                    data.imageName=data.image
+                    data.image=love.graphics.newImage(self.directories.layers .. data.image)
+                end
                 self.layers[#self.layers+1]=data
             end,
             addObject=function(self, data)
@@ -521,24 +528,30 @@ return {
                 end
                 love.graphics.setColor(1, 1, 1, 1)
             end,
+            numberBox=function(self, name, x, y, data)
+                local font=love.graphics.getFont()
+                love.graphics.print(name ..": ", x, y)
+                x=x+font:getWidth(name .. ": ")
+                self:drawButton(self.guiImages.plus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "increase " .. name)
+                x=x+self.guiImages.plus:getWidth()
+                love.graphics.print(" " .. data, x, y)
+                x=x+font:getWidth(" " .. data)
+                self:drawButton(self.guiImages.minus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "decrease " .. name)
+            end,
             drawLayerMenu=function(self)
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
                 love.graphics.print("total layers: " .. #self.layers, ((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth("total layers:    ")/2), 20)                
                 local x,y=8, 20
-                love.graphics.print("alpha: ", x, y)
-                x=x+font:getWidth("alpha: ")
-                self:drawButton(self.guiImages.plus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "increase alpha")
-                x=x+self.guiImages.plus:getWidth()
-                love.graphics.print(" " .. self.layers[self.activeLayer].alpha, x, y)
-                x=x+font:getWidth(" " .. self.layers[self.activeLayer].alpha)
-                self:drawButton(self.guiImages.minus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "decrease alpha")
+                self:numberBox("alpha", x, y, self.layers[self.activeLayer].alpha)
 
                 x=8
-                y=y+2
+                y=y+5
                 local y=y+font:getHeight()
-                love.graphics.print("scroll speed:   x:" .. " " .. " y:", x, y)
+                self:numberBox("scroll speed", x, y, self.layers[self.activeLayer].speed)
+ 
+
 
                 --draws an object menu for different tools, etc. Placing via grid (or not),
                 --deleting or moving instead of placing object

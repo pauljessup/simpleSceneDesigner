@@ -23,7 +23,6 @@ function love.load()
     simpleScene:addObjectType({type="tree", image="tree.png"})
 
     simpleScene:newScene({name="start", type="basic", x=0, y=0})
-    simpleScene:addLayer({image=love.graphics.newImage("map.png"), x=0, y=0, type="basic"})
     simpleScene:addObject({type="npc", x=100, y=20})
     simpleScene:startEditing()
 end
