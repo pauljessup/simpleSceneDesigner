@@ -9,6 +9,7 @@ return {
             sceneTypes={},
             layerTypes={},
             editorState="scene",
+            fileSelect=false,
             name="",
             size={width=love.graphics.getWidth(), height=love.graphics.getHeight()},
             objectTypes={},
@@ -648,46 +649,48 @@ return {
                     local mx, my=self:scaleMousePosition(true)
 
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
+                    if not self.fileSelect then
+                                        --drop an object on the map
+                                        if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                            if self.dropObject~=nil and self.editState=="drop" then
+                                                local type=self.editorObject[self.dropObject]
+                                                local obj=self.objectTypes[type]
+                                                local windowH=self.topMenuSize+16
+                                                if self.topMenuHide==true then windowH=16 end
+                                                if my>(windowH+16) then
+                                                    mx, my=self:scaleMousePosition(false)
+                                                    self.cooldown=1.0
+                                                    if self.useGrid then 
+                                                        mx=self.gridSize*(math.floor(mx/self.gridSize)) 
+                                                        my=self.gridSize*(math.floor(my/self.gridSize)) 
+                                                    end
+                                                    self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
+                                                end
+                                            end
+                                        end
 
-                    --drop an object on the map
-                    
-                    if love.mouse.isDown(1) and self.cooldown==0.0 then
-                        if self.dropObject~=nil and self.editState=="drop" then
-                            local type=self.editorObject[self.dropObject]
-                            local obj=self.objectTypes[type]
-                            local windowH=self.topMenuSize+16
-                            if self.topMenuHide==true then windowH=16 end
-                            if my>(windowH+16) then
-                                mx, my=self:scaleMousePosition(false)
-                                self.cooldown=1.0
-                                if self.useGrid then 
-                                    mx=self.gridSize*(math.floor(mx/self.gridSize)) 
-                                    my=self.gridSize*(math.floor(my/self.gridSize)) 
-                                end
-                                self:addObject({type=type, x=mx-(obj.width/2), y=my-(obj.height/2)})
-                            end
+                                        --if top menu is not hidden, and the up arrow is pressed, hide it.
+                                        if self.topMenuHide==false then
+                                                local x,y=((love.graphics.getWidth()/self.editorScale.x)/2)-(self.guiImages.arrow:getWidth()/2), 16+(self.topMenuSize-8)
+                                                if self:mouseCollide({x=x, y=y, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}, true) then
+                                                    if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                                        self.cooldown=1.0
+                                                        self.topMenuHide=true
+                                                    end
+                                                end
+                                        else
+                                            if self:mouseCollide({x=((love.graphics.getWidth()/self.editorScale.x)/2)-(self.guiImages.arrow:getWidth()/2), y=16, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}, true) then
+                                                if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                                    self.cooldown=1.0
+                                                    self.topMenuHide=false
+                                                end
+                                            end
+                                        end
+                                        if self.topMenuHide==false and self.editorState=="objs" then
+                                            self:updateObjectMenu()
+                                        end
+                        else
+                            --do file select menu update stuff. 
                         end
-                    end
-
-                    --if top menu is not hidden, and the up arrow is pressed, hide it.
-                    if self.topMenuHide==false then
-                            local x,y=((love.graphics.getWidth()/self.editorScale.x)/2)-(self.guiImages.arrow:getWidth()/2), 16+(self.topMenuSize-8)
-                            if self:mouseCollide({x=x, y=y, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}, true) then
-                                if love.mouse.isDown(1) and self.cooldown==0.0 then
-                                    self.cooldown=1.0
-                                    self.topMenuHide=true
-                                end
-                            end
-                    else
-                        if self:mouseCollide({x=((love.graphics.getWidth()/self.editorScale.x)/2)-(self.guiImages.arrow:getWidth()/2), y=16, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}, true) then
-                            if love.mouse.isDown(1) and self.cooldown==0.0 then
-                                self.cooldown=1.0
-                                self.topMenuHide=false
-                            end
-                        end
-                    end
-                    if self.topMenuHide==false and self.editorState=="objs" then
-                        self:updateObjectMenu()
-                    end
             end,
 }
