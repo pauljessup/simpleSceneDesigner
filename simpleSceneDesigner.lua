@@ -3,7 +3,6 @@ local function drawSort(a,b) return a.y+a.h < b.y+b.h end
 
 return {
             editState="move",
-            editState="move",
             useGrid=false,
             activeLayer=1,
             objPageAt=1,
@@ -29,13 +28,14 @@ return {
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
-            directories={scenes="", layers="", editor=""},
+            directories={scenes="", layers="", editor="", sprites=""},
            init=function(self, info)
                 local dir=info.directories
                 if dir~=nil then
                     if dir.scenes~=nil then self.directories.scenes=dir.scenes end
                     if dir.layers~=nil then self.directories.layers=dir.layers end
                     if dir.editor~=nil then self.directories.editor=dir.editor end
+                    if dir.sprites~=nil then self.directories.sprites=dir.sprites end
                 end
                 if info.scale~=nil then 
                     self:setScale(info.scale[1], info.scale[2]) 
@@ -63,6 +63,9 @@ return {
                                     plus=love.graphics.newImage(self.directories.editor .. "/up.png"),
                                     minus=love.graphics.newImage(self.directories.editor .. "/down.png"),
                 } 
+                -- add basic types
+                simpleScene:addLayerType({type="basic", vars={}})
+                simpleScene:addSceneType({type="basic", vars={}})
            end,
            setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
@@ -291,8 +294,13 @@ return {
                 self.sceneTypes[type.type]=type
             end,
             addObjectType=function(self, type)
+                if type.image~=nil then 
+                    type.imageName=type.image
+                    type.image=love.graphics.newImage(self.directories.sprites .. type.image) 
+                end
                 if type.width==nil then type.width=type.image:getWidth() end
                 if type.height==nil then type.height=type.image:getHeight() end
+  
                 self.objectTypes[type.type]=type
                 self.editorObject[#self.editorObject+1]=type.type
             end,
@@ -419,7 +427,7 @@ return {
             drawTab=function(self, name, x, y)
                 local font=love.graphics.getFont()
                 local windowHt=self.topMenuSize
-                local windowWidth=(love.graphics.getWidth()/self.scale.x)
+                local windowWidth=(love.graphics.getWidth()/self.editorScale.x)
 
                 if self.editorState==name then
                     --draw the tab at the top.
@@ -447,7 +455,19 @@ return {
                     self:drawWindow({x=-32, y=y, w=windowWidth+42, h=16})
                     love.graphics.draw(self.guiImages.arrow, (windowWidth/2)-(self.guiImages.arrow:getWidth()/2), y+16, 0, 1, -1)
                 end
+
+                love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                local xspot=windowWidth-(font:getWidth("using:"))
+                love.graphics.print("using: ", xspot-32, 0)
+                local img=self.guiImages.objDrop
+                if self.editState=="move" then img=self.guiImages.objMove end
+                if self.editState=="delete" then img=self.guiImages.objDel end
+
+                love.graphics.draw(img, xspot+15, 0)
+
+                love.graphics.print("working layer: " .. self.activeLayer, xspot-32-(font:getWidth("working layer:         ")))
                 love.graphics.setColor(1, 1, 1, 1)
+
             end,
             drawTopMenu=function(self)
                 local font=love.graphics.getFont()
@@ -505,10 +525,8 @@ return {
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
-                love.graphics.print("working: " .. self.activeLayer, 8, 20)                
-                local x,y=8, 20+font:getHeight()
-                love.graphics.print("total: " .. #self.layers, x, y)                
-                local y=y+font:getHeight()
+                love.graphics.print("total layers: " .. #self.layers, ((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth("total layers:    ")/2), 20)                
+                local x,y=8, 20
                 love.graphics.print("alpha: ", x, y)
                 x=x+font:getWidth("alpha: ")
                 self:drawButton(self.guiImages.plus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "increase alpha")
@@ -516,6 +534,11 @@ return {
                 love.graphics.print(" " .. self.layers[self.activeLayer].alpha, x, y)
                 x=x+font:getWidth(" " .. self.layers[self.activeLayer].alpha)
                 self:drawButton(self.guiImages.minus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "decrease alpha")
+
+                x=8
+                y=y+2
+                local y=y+font:getHeight()
+                love.graphics.print("scroll speed:   x:" .. " " .. " y:", x, y)
 
                 --draws an object menu for different tools, etc. Placing via grid (or not),
                 --deleting or moving instead of placing object

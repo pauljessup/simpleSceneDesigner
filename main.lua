@@ -12,19 +12,17 @@ function love.load()
     --stuff outside of the editor, it's only here, when using the mouse to edit, do you need it.
     simpleScene:init({directories={editor="editorAssets"}})
 
-    simpleScene:addSceneType({type="nightscene", vars={}})
     simpleScene:setScale(3, 3)
-    simpleScene:addLayerType({type="basic", vars={}})
 
-            simpleScene:addObjectType({type="npc", image=love.graphics.newImage("emily.png"),
+    simpleScene:addObjectType({type="npc", image="emily.png",
                                         draw=function(self, object)
                                             love.graphics.draw(self.image, object.x, object.y)
                                         end,
                                         })
 
-            simpleScene:addObjectType({type="tree", image=love.graphics.newImage("tree.png") })
+    simpleScene:addObjectType({type="tree", image="tree.png"})
 
-    simpleScene:newScene({name="start", tyep="nightscene", x=0, y=0})
+    simpleScene:newScene({name="start", type="basic", x=0, y=0})
     simpleScene:addLayer({image=love.graphics.newImage("map.png"), x=0, y=0, type="basic"})
     simpleScene:addObject({type="npc", x=100, y=20})
     simpleScene:startEditing()
