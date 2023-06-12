@@ -9,7 +9,7 @@ return {
             sceneTypes={},
             layerTypes={},
             editorState="scene",
-            fileSelect=false,
+            messageBox=false,
             name="",
             size={width=love.graphics.getWidth(), height=love.graphics.getHeight()},
             objectTypes={},
@@ -143,7 +143,9 @@ return {
                     data.imageName=data.image
                     data.image=love.graphics.newImage(self.directories.layers .. data.image)
                 end
-                self.layers[#self.layers+1]=data
+                data.canvas=love.graphics.newCanvas(self.size.width, self.size.height)
+                data.id=#self.layers+1
+                self.layers[data.id]=data
             end,
             addObject=function(self, data)
                 --sanity check
@@ -248,8 +250,15 @@ return {
                 end
             end,
             drawLayer=function(self, x, y, layer)
+                local c={}
+                c[1], c[2], c[3], c[4]=love.graphics.getColor()
+                local a=c[4]
                 --if it's passing the layer number...
                 if type(layer)~="table" then layer=self.layers[layer] end
+
+                love.graphics.setCanvas(layer.canvas)
+                love.graphics.clear()
+
                 local type=self.layerTypes[layer.type]
                 if type.draw~=nil then
                     type:draw(layer, x+self.layers[layer].x, y+self.layers[layer].y)
@@ -269,10 +278,17 @@ return {
                         for y=0, self.size.width, self.gridSize do
                             love.graphics.line((-self.x), (-self.y)+y, self.size.width, (-self.y)+y)
                         end
-                        love.graphics.setColor(1, 1, 1, 1)
+                        love.graphics.setColor(c[1], c[2], c[3], c[4])
+                    end
+                    if layer.id==self.activeLayer then
+                        self:mouseDrop()
                     end
                 end
-                self:drawObjects(il, x, y)   
+                self:drawObjects(il, x, y) 
+                love.graphics.setCanvas()
+                love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
+                love.graphics.draw(layer.canvas, layer.x, layer.y, 0, self.scale.x, self.scale.y)
+                love.graphics.setColor(c[1], c[2], c[3], c[4])
             end,
             draw=function(self, x, y)
                 if x==nil then x=self.x end
@@ -286,7 +302,7 @@ return {
                 if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].draw~=nil then
                     self.sceneTypes[self.type]:draw()
                 end
-                self:mouseDrop()
+
                 love.graphics.setCanvas()
                 love.graphics.draw(self.canvas.scene, 0, 0, 0, self.scale.x, self.scale.y)
                 if self.editing==true then 
@@ -337,10 +353,17 @@ return {
                 my=math.floor(my/scale.y)
                 return mx, my
             end,
+            updateMsgBox=function(self)
+
+            end,
             drawMsgBox=function(self)
-                --this draws the mssg box when adding layer or dropping an object
-                --so that you can specify additional variables, based on a vars variable
-                --added when creating the object type or the layer type or the scene type.
+                love.graphics.setColor(0, 0, 0, 0.8)
+                love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+                love.graphics.setColor(1, 1, 1, 1)
+                local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.8), ((love.graphics.getHeight()/self.editorScale.y)*0.8)
+                local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
+                self:drawWindow({x=x, y=y, w=w, h=h})
+                return {x=x, y=y, w=w, h=h}
             end,
 
             mouseCollide=function(self, col, editor)
@@ -430,6 +453,11 @@ return {
                 love.graphics.clear()
 
                 self:drawTopMenu()
+
+                if self.messageBox==true then
+                    self:drawMsgBox()
+                end
+
                 love.graphics.setCanvas()
             end,
             drawTab=function(self, name, x, y)
@@ -511,6 +539,28 @@ return {
                         if self:mouseCollide({x=x+24, y=y+24, width=24, height=24}, true) then self.useGrid=not self.useGrid end
                     end
             end,
+
+            updateLayerMenu=function(self)
+                
+                local font=love.graphics.getFont()
+                local x,y=(love.graphics.getWidth()/self.editorScale.x)-52, 20
+                        local x,y=8, 20
+                        self.layers[self.activeLayer].alpha=self:updateNumberBox("alpha", x, y, self.layers[self.activeLayer].alpha)
+                        if self.layers[self.activeLayer].alpha>1 then self.layers[self.activeLayer].alpha=1 end
+        
+                        x=8
+                        y=y+5
+                        local y=y+font:getHeight()
+                        self.layers[self.activeLayer].speed=self:updateNumberBox("scroll speed", x, y, self.layers[self.activeLayer].speed)
+                        if self.layers[self.activeLayer].speed>5 then self.layers[self.activeLayer].speed=5 end
+         
+                    --[[
+                        local y=y+font:getHeight()
+
+                        x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
+                        if self:mouseCollide({x=x, y=y, width=24, height=24}, true) then self.editState="load background" end
+                    --]]
+            end,
             drawButton=function(self, image, x, y, lighten, tooltip)
                 if lighten then love.graphics.setColor(1, 1, 1, 1) else love.graphics.setColor(0.5, 0.5, 0.5, 1) end
                 love.graphics.draw(image, x, y)
@@ -528,6 +578,27 @@ return {
                     love.graphics.print(tooltip, xpos, y-h)
                 end
                 love.graphics.setColor(1, 1, 1, 1)
+            end,
+            updateNumberBox=function(self, name, x, y, data)
+                        local font=love.graphics.getFont()
+                        x=x+font:getWidth(name .. ": ")
+                        if self:mouseCollide({x=x, y=y, width=16, height=16}, true) then
+                            if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                self.cooldown=1.0
+                                data=data+0.05
+                            end
+                        end
+                        x=x+self.guiImages.plus:getWidth()
+                        love.graphics.print(" " .. data, x, y)
+                        x=x+font:getWidth(" " .. data)
+                        if self:mouseCollide({x=x, y=y, width=16, height=16}, true) then
+                            if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                self.cooldown=1.0
+                                data=data-0.05
+                            end
+                        end
+                        if data<0.01 then data=0.00 end
+                return data
             end,
             numberBox=function(self, name, x, y, data)
                 local font=love.graphics.getFont()
@@ -649,7 +720,7 @@ return {
                     local mx, my=self:scaleMousePosition(true)
 
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
-                    if not self.fileSelect then
+                    if not self.messageBox then
                                         --drop an object on the map
                                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                                             if self.dropObject~=nil and self.editState=="drop" then
@@ -688,6 +759,9 @@ return {
                                         end
                                         if self.topMenuHide==false and self.editorState=="objs" then
                                             self:updateObjectMenu()
+                                        end
+                                        if self.topMenuHide==false and self.editorState=="layers" then
+                                            self:updateLayerMenu()
                                         end
                         else
                             --do file select menu update stuff. 
