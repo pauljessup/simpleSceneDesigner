@@ -140,7 +140,9 @@ return {
                 if data.scroll==nil then
                     data.scroll={}
                     data.scroll.speed=1.0
-                    data.scroll.constant=false
+                    data.scroll.constant={}
+                    data.scroll.constant.x=false
+                    data.scroll.constant.y=false
                 end
 
                 if data.alpha==nil then data.alpha=1.0 end 
@@ -565,8 +567,9 @@ return {
 
                         y=y+5
                         local y=y+font:getHeight()
-                        self.layers[self.activeLayer].scroll.constant=self:updateCheckbox("constant speed", x, y, self.layers[self.activeLayer].scroll.constant)
-         
+                        self.layers[self.activeLayer].scroll.constant.x=self:updateCheckbox(" x",  x+font:getWidth("constant scroll "), y, self.layers[self.activeLayer].scroll.constant.x)
+                        self.layers[self.activeLayer].scroll.constant.y=self:updateCheckbox(" y",  x+font:getWidth("constant scroll ")+font:getWidth(" x:")+self.guiImages.checkYes:getWidth()+2, y, self.layers[self.activeLayer].scroll.constant.y)
+
                     
                         x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
                         if self:mouseCollide({x=x, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
@@ -663,7 +666,7 @@ return {
                 if data==true then img=self.guiImages.checkYes end
                 love.graphics.print(name ..": ", x, y)
                 x=x+font:getWidth(name .. ": ")
-                self:drawButton(img, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "set " .. name)
+                self:drawButton(img, x, y, ((self:mouseCollide({x=x, y=y, width=16, height=16}, true)) or (data==true)), "set " .. name)
             end,
             drawLayerMenu=function(self)
                 --parallax: x speed, yspeed  constant or relative
@@ -680,8 +683,9 @@ return {
  
                 y=y+5
                 local y=y+font:getHeight()
-                self:drawCheckbox("constant scroll", x, y, self.layers[self.activeLayer].scroll.constant)
-
+                love.graphics.print("constant scroll ", x, y)
+                self:drawCheckbox(" x", x+font:getWidth("constant scroll "), y, self.layers[self.activeLayer].scroll.constant.x)
+                self:drawCheckbox(" y", x+font:getWidth("constant scroll ")+font:getWidth(" x:")+self.guiImages.checkYes:getWidth()+2, y, self.layers[self.activeLayer].scroll.constant.y)
 
                 --draws an object menu for different tools, etc. Placing via grid (or not),
                 --deleting or moving instead of placing object
