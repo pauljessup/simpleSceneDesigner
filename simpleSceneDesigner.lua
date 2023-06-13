@@ -166,7 +166,13 @@ return {
                 data.scene=self.name
                 self.objects[data.id]=data
             end,
-            update=function(self, dt)
+            update=function(self, customFunc, dt)
+                if type(customFunc)=="number" then 
+                    dt=customFunc
+                else
+                    customFunc(self, dt)
+                end
+
                 if self.editing==true then
                     self:updateEditor(dt)
                 end
@@ -288,7 +294,11 @@ return {
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
                 end
             end,
-            draw=function(self, x, y)
+            draw=function(self, customFunc, x, y)
+                if type(customFunc)=="number" then 
+                    x=customFunc
+                    y=x
+                end
                 if x==nil then x=self.x end
                 if y==nil then y=self.y end
                 love.graphics.setCanvas(self.canvas.scene)
@@ -303,6 +313,9 @@ return {
                 if self.editing==true then 
                     self:drawEditor() 
                     love.graphics.draw(self.canvas.editor, 0, 0, 0, self.editorScale.x, self.editorScale.y)
+                end
+                if type(customFunc)=="function" then
+                    customFunc(self, x, y)
                 end
             end,
 
