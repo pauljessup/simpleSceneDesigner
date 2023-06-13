@@ -21,7 +21,7 @@ return {
             path=love.filesystem.getSource(),
             binser=require(folderOfThisFile .. "binser"),
             editorObject={},
-            topMenuSize=100,
+            topMenuSize=135,
             vars={},
             zsort={},
             cooldown=0.0, --so mousepresses don't repeat a ton.
@@ -147,6 +147,8 @@ return {
                     data.imageName=data.image
                     data.image=love.graphics.newImage(self.directories.layers .. data.image)
                 end
+                if data.visible==nil then data.visible=true end
+
                 data.canvas=love.graphics.newCanvas(self.size.width, self.size.height)
                 data.id=#self.layers+1
                 self.layers[data.id]=data
@@ -255,35 +257,36 @@ return {
                 local a=c[4]
                 --if it's passing the layer number...
                 if type(layer)~="table" then layer=self.layers[layer] end
+                if layer.visible then
+                        love.graphics.setCanvas(layer.canvas)
+                        love.graphics.clear()
 
-                love.graphics.setCanvas(layer.canvas)
-                love.graphics.clear()
 
-
-                if layer.image~=nil then
-                        love.graphics.draw(layer.image, layer.x, layer.y)
-                end
-                --draw the grid if in editor and grid is set.
-                if self.editing then
-                    if self.useGrid==true then
-                        love.graphics.setColor(1, 1, 1, 0.12)
-                        for x=0, self.size.width, self.gridSize do
-                            love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, self.size.height)
+                        if layer.image~=nil then
+                                love.graphics.draw(layer.image, layer.x, layer.y)
                         end
-                        for y=0, self.size.width, self.gridSize do
-                            love.graphics.line((-self.x), (-self.y)+y, self.size.width, (-self.y)+y)
+                        --draw the grid if in editor and grid is set.
+                        if self.editing then
+                            if self.useGrid==true then
+                                love.graphics.setColor(1, 1, 1, 0.12)
+                                for x=0, self.size.width, self.gridSize do
+                                    love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, self.size.height)
+                                end
+                                for y=0, self.size.width, self.gridSize do
+                                    love.graphics.line((-self.x), (-self.y)+y, self.size.width, (-self.y)+y)
+                                end
+                                love.graphics.setColor(c[1], c[2], c[3], c[4])
+                            end
+                            if layer.id==self.activeLayer then
+                                self:mouseDrop()
+                            end
                         end
+                        self:drawObjects(layer.id) 
+                        love.graphics.setCanvas()
+                        love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
+                        love.graphics.draw(layer.canvas, x, y, 0, self.scale.x, self.scale.y)
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
-                    end
-                    if layer.id==self.activeLayer then
-                        self:mouseDrop()
-                    end
                 end
-                self:drawObjects(layer.id) 
-                love.graphics.setCanvas()
-                love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
-                love.graphics.draw(layer.canvas, x, y, 0, self.scale.x, self.scale.y)
-                love.graphics.setColor(c[1], c[2], c[3], c[4])
             end,
             draw=function(self, x, y)
                 if x==nil then x=self.x end
@@ -505,7 +508,7 @@ return {
                 end
                 if self.topMenuHide==false then
                     if self.editorState=="scene" then
-
+                        self:drawSceneMenu()
                     elseif self.editorState=="layers" then
                         self:drawLayerMenu()
                     elseif self.editorState=="objs" then
@@ -527,8 +530,8 @@ return {
             updateLayerMenu=function(self)
                 
                 local font=love.graphics.getFont()
-                local x,y=(love.graphics.getWidth()/self.editorScale.x)-52, 20
-                        local x,y=8, 20
+                local x,y=(love.graphics.getWidth()/self.editorScale.x)-52, 20+font:getHeight()
+                        local x,y=8, 20+font:getHeight()
                         self.layers[self.activeLayer].alpha=self:updateNumberBox("alpha", x, y, self.layers[self.activeLayer].alpha)
                         if self.layers[self.activeLayer].alpha>1 then self.layers[self.activeLayer].alpha=1 end
         
@@ -560,7 +563,15 @@ return {
                             self.activeLayer=self.activeLayer-1
                             if self.activeLayer<1 then self.activeLayer=1 end
                         end
-        
+
+
+                        x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
+                        --buttons row 1.
+                        y=y+24
+                        --button row 2
+                        self.layers[self.activeLayer].visible=self:updateCheckbox("visible",  x, y+24, self.layers[self.activeLayer].visible)
+
+
                     --[[
                         local y=y+font:getHeight()
 
@@ -641,12 +652,18 @@ return {
                 x=x+font:getWidth(name .. ": ")
                 self:drawButton(img, x, y, ((self:mouseCollide({x=x, y=y, width=16, height=16}, true)) or (data==true)), "set " .. name)
             end,
+            drawSceneMenu=function(self)
+                self.topMenuSize=135/self.editorScale.y
+                love.graphics.print("Hello", 15, 15)
+            end,
             drawLayerMenu=function(self)
+                self.topMenuSize=148/self.editorScale.y
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
-                love.graphics.print("total layers: " .. #self.layers, ((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth("total layers:    ")/2), 20)                
-                local x,y=8, 20
+                local totalText="layer: " .. self.activeLayer .. " of " .. #self.layers
+                love.graphics.print(totalText, 8, 20)                
+                local x,y=8, 23+font:getHeight()
                 self:numberBox("alpha", x, y, self.layers[self.activeLayer].alpha)
 
                 x=8
@@ -671,7 +688,7 @@ return {
                 self:drawButton(self.guiImages.tileLayer, x+24, y, (self.layers[self.activeLayer].tiled or self:mouseCollide({x=x+24, y=y, width=24, height=24}, true)), "tile background")
                 self:drawButton(self.guiImages.moveLayer, x+48, y, (self.editorState=="move layer" or self:mouseCollide({x=x+48, y=y, width=24, height=24}, true)), "move layer")
 
-                --self:drawButton(self.guiImages.gridButton, x+24, y+24, self.useGrid, "use grid")
+                self:drawCheckbox("visible ", x, y+24, self.layers[self.activeLayer].visible)
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectMenu=function(self)
@@ -685,6 +702,7 @@ return {
                 self:drawButton(self.guiImages.gridButton, x+24, y+24, self.useGrid, "use grid")
             end,
             drawObjectDropper=function(self)
+                self.topMenuSize=100/self.editorScale.y
                 local windowHt=self.topMenuSize
                 local windowWidth=(love.graphics.getWidth()/self.editorScale.x)
                 local objDropWidth=windowWidth-(5*24)
