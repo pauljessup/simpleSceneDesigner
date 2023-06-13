@@ -64,6 +64,15 @@ return {
                                     checkYes=love.graphics.newImage(self.directories.editor .. "/checkyes.png"),
                                     checkNo=love.graphics.newImage(self.directories.editor .. "/checkno.png"),
                 } 
+
+                --preload scene images from scene folder.
+                local files = love.filesystem.getDirectoryItems(self.directories.layers)
+                self.sceneImages={}
+                for i,file in ipairs(files) do
+                    if string.find(file, ".png") then
+                        self.sceneImages[#self.sceneImages+1]={name=file, image=love.graphics.newImage(self.directories.layers .. "/" .. file)}
+                    end
+                end
            end,
            setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
@@ -363,9 +372,62 @@ return {
                 local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.8), ((love.graphics.getHeight()/self.editorScale.y)*0.8)
                 local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
                 self:drawWindow({x=x, y=y, w=w, h=h})
+                if self.editorState=="select image" then
+                    self:drawImageSelect({x=x, y=y, w=w, h=h})
+                end
                 return {x=x, y=y, w=w, h=h}
             end,
 
+            drawImageSelect=function(self, window)
+                local font=love.graphics.getFont()
+                local title="-select a background image-"
+                local button={w=(window.w+15)/4, h=(window.h+15)/4}
+                local y,x=window.y+font:getHeight(), (window.x+((window.w/2)-((button.w*3)/2)))-10
+                local ox=x
+                
+                love.graphics.print(title, window.x+((window.w/2)-(font:getWidth(title)/2)), y)
+
+                y=y+(font:getHeight()*2)
+
+                --add ability to cancel this by clicking outside the window.
+
+                --do pagination here.
+                for i,file in ipairs(self.sceneImages) do
+                    local scale={x=button.w/file.image:getWidth(), y=button.h/file.image:getHeight()}
+                    local col=0.5
+
+                    if self:mouseCollide({x=x, y=y, width=button.w, height=button.h}, true) then 
+                        col=1 
+                        if love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.cooldown=1.0
+                            self.layers[self.activeLayer].imageName=file.name
+                            self.layers[self.activeLayer].image=self.sceneImages[i].image
+                            self.messageBox=false
+                            self.editorState=self.oldState
+                            self.oldState=nil
+                        end
+                    end
+                    love.graphics.setColor(col, col, col, 1)
+
+                    love.graphics.draw(file.image, x, y, 0, scale.x, scale.y)
+                    love.graphics.print(file.name, x+((button.w/2)-(font:getWidth(file.name)/2)), y+button.h)
+                    x=x+button.w+5
+                    if i%3==0 then y=y+button.h+20 x=ox end
+                end
+
+                love.graphics.setColor(1, 1, 1, 1)
+                                --add pagination arrow.
+
+                local cx, cy, cw, ch=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10)), font:getWidth("CANCEL")+4, font:getHeight()+4
+                self:drawWindow({x=cx, y=cy, w=font:getWidth("CANCEL")+4, w=cw, h=ch})
+                love.graphics.print("CANCEL", cx+2, cy+2) 
+                if self:mouseCollide({x=cx, y=cy, width=cw, height=ch}, true) and self.cooldown==0.0 and love.mouse.isDown(1) then
+                    self.cooldown=1.0
+                    self.messageBox=false
+                    self.editorState=self.oldState
+                    self.oldState=nil
+                end
+            end,
             mouseCollide=function(self, col, editor)
                 local mx, my = self:scaleMousePosition(editor)
 
@@ -577,11 +639,14 @@ return {
                             if self.activeLayer<1 then self.activeLayer=1 end
                         end
 
-
-                        x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
-                        --buttons row 1.
                         y=y+24
-                        --button row 2
+                        if (self:mouseCollide({x=x, y=y, width=24, height=24}, true)) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.oldState=self.editorState
+                            self.editorState="select image"
+                            self.messageBox=true
+                        end
+                        --self:drawButton(self.guiImages.tileLayer, x+24, y, (self.layers[self.activeLayer].tiled or self:mouseCollide({x=x+24, y=y, width=24, height=24}, true)), "tile background")
+                        --self:drawButton(self.guiImages.moveLayer, x+48, y, (self.editorState=="move layer" or self:mouseCollide({x=x+48, y=y, width=24, height=24}, true)), "move layer")
                         self.layers[self.activeLayer].visible=self:updateCheckbox("visible",  x, y+24, self.layers[self.activeLayer].visible)
 
 
@@ -830,7 +895,9 @@ return {
                                             self:updateLayerMenu()
                                         end
                         else
-                            --do file select menu update stuff. 
+                            if self.editorState=="select image" then
+                                --select background image.
+                            end
                         end
             end,
 }
