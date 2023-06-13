@@ -6,8 +6,6 @@ return {
             useGrid=false,
             activeLayer=1,
             objPageAt=1,
-            sceneTypes={},
-            layerTypes={},
             editorState="scene",
             messageBox=false,
             name="",
@@ -66,9 +64,6 @@ return {
                                     checkYes=love.graphics.newImage(self.directories.editor .. "/checkyes.png"),
                                     checkNo=love.graphics.newImage(self.directories.editor .. "/checkno.png"),
                 } 
-                -- add basic types
-                simpleScene:addLayerType({type="basic", vars={}})
-                simpleScene:addSceneType({type="basic", vars={}})
            end,
            setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
@@ -173,13 +168,7 @@ return {
                 if self.editing==true then
                     self:updateEditor(dt)
                 end
-                if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].update~=nil then
-                    self.sceneTypes[self.type]:update(dt)
-                end
-                for il, layer in ipairs(self.layers) do 
-                    local type=self.layerTypes[layer.type]
-                    if type.update~=nil and self.editing==false then type:update(layer, dt) end
-                end
+
                 for ob, object in ipairs(self.objects) do 
                     local type=self.objectTypes[object.type]
                     if type.update~=nil and self.editing==false then type:update(object, dt) end                    
@@ -270,14 +259,9 @@ return {
                 love.graphics.setCanvas(layer.canvas)
                 love.graphics.clear()
 
-                local type=self.layerTypes[layer.type]
-                if type.draw~=nil then
-                    type:draw(layer, x+self.layers[layer].x, y+self.layers[layer].y)
-                else
-                    --if there is no draw function and there is an image, just draw the image relative to camera coords.
-                    if layer.image~=nil then
-                        love.graphics.draw(layer.image, x+layer.x, y+layer.y)
-                    end
+
+                if layer.image~=nil then
+                        love.graphics.draw(layer.image, layer.x, layer.y)
                 end
                 --draw the grid if in editor and grid is set.
                 if self.editing then
@@ -298,7 +282,7 @@ return {
                 self:drawObjects(layer.id) 
                 love.graphics.setCanvas()
                 love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
-                love.graphics.draw(layer.canvas, layer.x, layer.y, 0, self.scale.x, self.scale.y)
+                love.graphics.draw(layer.canvas, x, y, 0, self.scale.x, self.scale.y)
                 love.graphics.setColor(c[1], c[2], c[3], c[4])
             end,
             draw=function(self, x, y)
@@ -310,9 +294,6 @@ return {
                         self:drawLayer(x, y, layer)
                 end
 
-                if self.sceneTypes[self.type]~=nil and self.sceneTypes[self.type].draw~=nil then
-                    self.sceneTypes[self.type]:draw()
-                end
 
                 love.graphics.setCanvas()
                 love.graphics.draw(self.canvas.scene, 0, 0, 0, self.scale.x, self.scale.y)
@@ -325,9 +306,6 @@ return {
 ------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
             startEditing=function(self) self.editing=true end,
             endEditing=function(self) self.editing=true end,
-            addSceneType=function(self, type)
-                self.sceneTypes[type.type]=type
-            end,
             addObjectType=function(self, type)
                 if type.image~=nil then 
                     type.imageName=type.image
@@ -338,11 +316,6 @@ return {
   
                 self.objectTypes[type.type]=type
                 self.editorObject[#self.editorObject+1]=type.type
-            end,
-            addLayerType=function(self, type)
-                if type.x==nil then type.x=0 end 
-                if type.y==nil then type.y=0 end 
-                self.layerTypes[type.type]=type
             end,
             moveLayer=function(self, layer, x, y)
                 self.layers[layer].x=x
