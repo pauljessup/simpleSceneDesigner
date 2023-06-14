@@ -258,7 +258,7 @@ return {
                                     love.graphics.setColor(0.5, 0.5, 0.5, 1)
                             end
                             if type.draw~=nil then
-                                    type:draw(object, x, y, self.editing) 
+                                    type:draw(object, self) 
                             elseif type.image~=nil then
                                 love.graphics.draw(type.image, object.x, object.y)
                             end
@@ -458,6 +458,7 @@ return {
                             self.cooldown=1.0
                             self.layers[self.activeLayer].imageName=file.name
                             self.layers[self.activeLayer].image=self.sceneImages[i].image
+                            self.layers[self.activeLayer].canvas=love.graphics.newCanvas(self.sceneImages[i].image:getWidth(), self.sceneImages[i].image:getHeight())
                             self.messageBox=false
                             self.editorState=self.oldState
                             self.oldState=nil
@@ -478,6 +479,13 @@ return {
             mouseCollide=function(self, col, editor)
                 local mx, my = self:scaleMousePosition(editor)
 
+                --if not editor, adjust according to layer offsets. Need to add scene offsets here too for scene camera.
+                if not editor then
+                    local layer=self.layers[self.activeLayer]
+                    mx=mx-layer.x 
+                    my=my-layer.y
+                end
+
                 if col.layer and self.activeLayer and (col.layer~=self.activeLayer) then return false end
                 if   col.x < mx+2 and
                 mx < col.x+col.width and
@@ -495,7 +503,7 @@ return {
                     local obj=self.objectTypes[self.editorObject[self.dropObject]]
                     local windowH=self.topMenuSize
                     if self.topMenuHide==true then windowH=16 end
-                    if my>(windowH+32)then
+                    if my>(windowH)then
                         mx, my=self:scaleMousePosition(false)
                         love.graphics.setColor(1, 1, 1, 0.7)
                         if self.useGrid then 
@@ -546,6 +554,10 @@ return {
                             local windowH=self.topMenuSize
                             if self.topMenuHide==true then windowH=16 end
                             if my>(windowH+32)then
+                                local layer=self.layers[self.activeLayer]
+                                mx=mx-layer.x 
+                                my=my-layer.y
+                                
                                 --draw it being moved.
                                 local obj=self.objects[self.dragNDrop]
                                 obj.x=mx-(obj.width/2) 
