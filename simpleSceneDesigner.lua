@@ -299,7 +299,16 @@ return {
                         self:drawObjects(layer.id) 
                         love.graphics.setCanvas()
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
-                        love.graphics.draw(layer.canvas, layer.x*self.scale.x, layer.y*self.scale.y, 0, self.scale.x, self.scale.y)
+                        --if tiled background, draw around it 4x
+                        --and offset, and then if > then layer offset going lower than 0 wrap around, same with great than screen width.
+                        if layer.tiled==true and layer.image~=nil then
+                                layer.canvas:setWrap("repeat", "repeat")
+                                local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, self.size.width, self.size.height, layer.image:getWidth(), layer.image:getHeight())	
+                                love.graphics.draw(layer.canvas, quad, 0, 0, 0, self.scale.x, self.scale.y)
+                        else
+                            love.graphics.draw(layer.canvas, layer.x*self.scale.x, layer.y*self.scale.y, 0, self.scale.x, self.scale.y)
+                        end
+
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
                 end
             end,
