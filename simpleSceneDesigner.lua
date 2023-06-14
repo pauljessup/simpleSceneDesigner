@@ -363,7 +363,11 @@ return {
                 return mx, my
             end,
             updateMsgBox=function(self)
-
+                local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.8), ((love.graphics.getHeight()/self.editorScale.y)*0.8)
+                local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
+                if self.editorState=="select image" then
+                    self:updateImageSelect({x=x, y=y, w=w, h=h})
+                end
             end,
             drawMsgBox=function(self)
                 love.graphics.setColor(0, 0, 0, 0.8)
@@ -378,6 +382,40 @@ return {
                 return {x=x, y=y, w=w, h=h}
             end,
 
+            updateImageSelect=function(self, window)
+                if self.selectPage==nil then self.selectPage=1 end
+                local endPage=self.selectPage+5
+                if endPage>#self.sceneImages then endPage=#self.sceneImages end
+
+                local font=love.graphics.getFont()
+                local cx, cy, cw, ch=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10)), font:getWidth("CANCEL")+4, font:getHeight()+4
+                if self:mouseCollide({x=cx, y=cy, width=cw, height=ch}, true) and self.cooldown==0.0 and love.mouse.isDown(1) then
+                    self.cooldown=1.0
+                    self.messageBox=false
+                    self.editorState=self.oldState
+                    self.oldState=nil
+                    self.selectPage=1
+                end
+
+
+                --left arrow
+                if self.selectPage>1 then
+                    love.graphics.draw(self.guiImages.arrow, window.x+10, window.y+(window.h/2), math.rad(-90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                    if self:mouseCollide({x=window.x+10, y=window.y+(window.h/2)-8, height=32, width=32}, true)  and self.cooldown==0.0 and love.mouse.isDown(1) then
+                        self.cooldown=1.0
+                        self.selectPage=self.selectPage-6
+                        if self.selectPage<1 then self.selectPage=1 end
+                    end
+                end
+                --right arrow
+                if self.selectPage<(#self.sceneImages-6) then
+                    love.graphics.draw(self.guiImages.arrow, window.x+(window.w-12), window.y+(window.h/2), math.rad(90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                    if self:mouseCollide({x=window.x+(window.w-12), y=window.y+(window.h/2)-8, height=32, width=32}, true)  and self.cooldown==0.0 and love.mouse.isDown(1) then
+                        self.cooldown=1.0
+                        self.selectPage=self.selectPage+6
+                    end
+                end
+            end,
             drawImageSelect=function(self, window)
                 local font=love.graphics.getFont()
                 local title="-select a background image-"
@@ -392,10 +430,28 @@ return {
                 --add ability to cancel this by clicking outside the window.
 
                 --do pagination here.
-                for i,file in ipairs(self.sceneImages) do
+                if self.selectPage==nil then self.selectPage=1 end
+                local endPage=self.selectPage+5
+                
+
+                if endPage>#self.sceneImages then endPage=#self.sceneImages end
+
+                local cx, cy, cw, ch=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10)), font:getWidth("CANCEL")+4, font:getHeight()+4
+                self:drawWindow({x=cx, y=cy, w=font:getWidth("CANCEL")+4, w=cw, h=ch})
+                love.graphics.print("CANCEL", cx+2, cy+2) 
+                if self.selectPage>1 then
+                    love.graphics.draw(self.guiImages.arrow, window.x+10, window.y+(window.h/2), math.rad(-90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                end
+                --right arrow
+                if self.selectPage<(#self.sceneImages-6) then
+                    love.graphics.draw(self.guiImages.arrow, window.x+(window.w-12), window.y+(window.h/2), math.rad(90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                end
+
+                for i=self.selectPage, endPage do
+                    local file=self.sceneImages[i]
                     local scale={x=button.w/file.image:getWidth(), y=button.h/file.image:getHeight()}
                     local col=0.5
-
+                    
                     if self:mouseCollide({x=x, y=y, width=button.w, height=button.h}, true) then 
                         col=1 
                         if love.mouse.isDown(1) and self.cooldown==0.0 then
@@ -405,28 +461,19 @@ return {
                             self.messageBox=false
                             self.editorState=self.oldState
                             self.oldState=nil
+                            self.selectPage=nil
                         end
                     end
                     love.graphics.setColor(col, col, col, 1)
 
                     love.graphics.draw(file.image, x, y, 0, scale.x, scale.y)
-                    love.graphics.print(file.name, x+((button.w/2)-(font:getWidth(file.name)/2)), y+button.h)
+                    love.graphics.print(i, x+((button.w/2)-(font:getWidth(file.name)/2)), y+button.h)
                     x=x+button.w+5
                     if i%3==0 then y=y+button.h+20 x=ox end
                 end
 
                 love.graphics.setColor(1, 1, 1, 1)
-                                --add pagination arrow.
 
-                local cx, cy, cw, ch=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10)), font:getWidth("CANCEL")+4, font:getHeight()+4
-                self:drawWindow({x=cx, y=cy, w=font:getWidth("CANCEL")+4, w=cw, h=ch})
-                love.graphics.print("CANCEL", cx+2, cy+2) 
-                if self:mouseCollide({x=cx, y=cy, width=cw, height=ch}, true) and self.cooldown==0.0 and love.mouse.isDown(1) then
-                    self.cooldown=1.0
-                    self.messageBox=false
-                    self.editorState=self.oldState
-                    self.oldState=nil
-                end
             end,
             mouseCollide=function(self, col, editor)
                 local mx, my = self:scaleMousePosition(editor)
@@ -896,7 +943,7 @@ return {
                                         end
                         else
                             if self.editorState=="select image" then
-                                --select background image.
+                                self:updateMsgBox()
                             end
                         end
             end,
