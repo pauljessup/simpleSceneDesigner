@@ -266,7 +266,7 @@ return {
                     end
                 end
             end,
-            drawLayer=function(self, x, y, layer)
+            drawLayer=function(self, layer)
                 local c={}
                 c[1], c[2], c[3], c[4]=love.graphics.getColor()
                 local a=c[4]
@@ -278,7 +278,7 @@ return {
 
 
                         if layer.image~=nil then
-                                love.graphics.draw(layer.image, layer.x, layer.y)
+                                love.graphics.draw(layer.image, 0, 0)
                         end
                         --draw the grid if in editor and grid is set.
                         if self.editing then
@@ -299,7 +299,7 @@ return {
                         self:drawObjects(layer.id) 
                         love.graphics.setCanvas()
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
-                        love.graphics.draw(layer.canvas, x, y, 0, self.scale.x, self.scale.y)
+                        love.graphics.draw(layer.canvas, layer.x*self.scale.x, layer.y*self.scale.y, 0, self.scale.x, self.scale.y)
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
                 end
             end,
@@ -313,12 +313,12 @@ return {
                 love.graphics.setCanvas(self.canvas.scene)
                 love.graphics.clear()
                 for il,layer in ipairs(self.layers) do 
-                        self:drawLayer(x, y, layer)
+                        self:drawLayer(layer)
                 end
 
 
                 love.graphics.setCanvas()
-                love.graphics.draw(self.canvas.scene, 0, 0, 0, self.scale.x, self.scale.y)
+                love.graphics.draw(self.canvas.scene, x, y, 0, self.scale.x, self.scale.y)
                 if self.editing==true then 
                     self:drawEditor() 
                     love.graphics.draw(self.canvas.editor, 0, 0, 0, self.editorScale.x, self.editorScale.y)
@@ -467,7 +467,7 @@ return {
                     love.graphics.setColor(col, col, col, 1)
 
                     love.graphics.draw(file.image, x, y, 0, scale.x, scale.y)
-                    love.graphics.print(i, x+((button.w/2)-(font:getWidth(file.name)/2)), y+button.h)
+                    love.graphics.print(file.name, x+((button.w/2)-(font:getWidth(file.name)/2)), y+button.h)
                     x=x+button.w+5
                     if i%3==0 then y=y+button.h+20 x=ox end
                 end
@@ -502,6 +502,11 @@ return {
                             mx=self.gridSize*(math.floor(mx/self.gridSize)) 
                             my=self.gridSize*(math.floor(my/self.gridSize)) 
                         end
+
+                        local layer=self.layers[self.activeLayer]
+                        mx=mx-layer.x 
+                        my=my-layer.y
+
                         if obj.draw~=nil then 
                             obj:draw({x=mx-(obj.width/2), y=my-(obj.height/2)})
                         else
@@ -510,6 +515,7 @@ return {
                         love.graphics.setColor(1, 1, 1, 1)
                     end
                 end
+
 
             end,
             mouseOverObject=function(self)
@@ -605,6 +611,7 @@ return {
                 local xspot=windowWidth-(font:getWidth("using:"))
                 love.graphics.print("using: ", xspot-32, 0)
                 local img=self.guiImages.objDrop
+                if self.editState=="move layer" then img=self.guiImages.moveLayer end
                 if self.editState=="move" then img=self.guiImages.objMove end
                 if self.editState=="delete" then img=self.guiImages.objDel end
 
@@ -692,8 +699,16 @@ return {
                             self.editorState="select image"
                             self.messageBox=true
                         end
-                        --self:drawButton(self.guiImages.tileLayer, x+24, y, (self.layers[self.activeLayer].tiled or self:mouseCollide({x=x+24, y=y, width=24, height=24}, true)), "tile background")
-                        --self:drawButton(self.guiImages.moveLayer, x+48, y, (self.editorState=="move layer" or self:mouseCollide({x=x+48, y=y, width=24, height=24}, true)), "move layer")
+
+                        if  self:mouseCollide({x=x+24, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.cooldown=1.0
+                            self.layers[self.activeLayer].tiled=not self.layers[self.activeLayer].tiled
+                        end
+
+                        if  self:mouseCollide({x=x+48, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.cooldown=1.0
+                            self.editState="move layer"
+                        end
                         self.layers[self.activeLayer].visible=self:updateCheckbox("visible",  x, y+24, self.layers[self.activeLayer].visible)
 
 
@@ -753,8 +768,8 @@ return {
                 if string.len(toshow)==1 then toshow=toshow .. ".00" end
                 if string.len(toshow)==3 then toshow=toshow .. "0" end
 
-                love.graphics.print(" " .. toshow, x, y)
-                x=x+font:getWidth(" 0.99")
+                love.graphics.print("" .. toshow, x, y)
+                x=x+font:getWidth("0.99")
                 self:drawButton(self.guiImages.minus, x, y, (self:mouseCollide({x=x, y=y, width=16, height=16}, true)), "decrease " .. name)
             end,
             updateCheckbox=function(self, name, x, y, data)
@@ -809,9 +824,11 @@ return {
                 self:drawButton(self.guiImages.layerUp, x+24, y, (self:mouseCollide({x=x+24, y=y, width=24, height=24}, true)), "up a layer")
                 self:drawButton(self.guiImages.layerDown, x+48, y, (self:mouseCollide({x=x+48, y=y, width=24, height=24,}, true)), "down a layer")
                 y=y+24
-                self:drawButton(self.guiImages.backgroundImage, x, y, (self:mouseCollide({x=x, y=y, width=24, height=24}, true)), "change background")                                
+                local backgroundText="change background"
+                if self.layers[self.activeLayer].image==nil then backgroundText="set background" end
+                self:drawButton(self.guiImages.backgroundImage, x, y, (self:mouseCollide({x=x, y=y, width=24, height=24}, true)), backgroundText)                                
                 self:drawButton(self.guiImages.tileLayer, x+24, y, (self.layers[self.activeLayer].tiled or self:mouseCollide({x=x+24, y=y, width=24, height=24}, true)), "tile background")
-                self:drawButton(self.guiImages.moveLayer, x+48, y, (self.editorState=="move layer" or self:mouseCollide({x=x+48, y=y, width=24, height=24}, true)), "move layer")
+                self:drawButton(self.guiImages.moveLayer, x+48, y, (self.editState=="move layer" or self:mouseCollide({x=x+48, y=y, width=24, height=24}, true)), "reposition layer")
 
                 self:drawCheckbox("visible ", x, y+24, self.layers[self.activeLayer].visible)
             end,
@@ -899,6 +916,19 @@ return {
 
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
                     if not self.messageBox then
+                                        --move layer if that's the tool
+                                        if self.editState=="move layer" and love.mouse.isDown(1) then
+                                            local mx, my=self:scaleMousePosition(false)
+                                            local layer=self.layers[self.activeLayer]
+                                            if self.last==nil then self.last={x=mx, y=my} end
+                                            layer.x=layer.x+(mx-self.last.x)
+                                            layer.y=layer.y+(my-self.last.y)
+                                            self.last.x=mx
+                                            self.last.y=my
+                                        else
+                                            self.last=nil
+                                        end
+
                                         --drop an object on the map
                                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                                             if self.dropObject~=nil and self.editState=="drop" then
@@ -913,6 +943,10 @@ return {
                                                         mx=self.gridSize*(math.floor(mx/self.gridSize)) 
                                                         my=self.gridSize*(math.floor(my/self.gridSize)) 
                                                     end
+                                                    --adjust based on layer offset.
+                                                    local layer=self.layers[self.activeLayer]
+                                                    mx=mx-layer.x 
+                                                    my=my-layer.y                            
                                                     self:addObject({type=type, layer=self.activeLayer, x=mx-(obj.width/2), y=my-(obj.height/2)})
                                                 end
                                             end
