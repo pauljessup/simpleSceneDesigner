@@ -35,6 +35,7 @@ return {
                     if dir.layers~=nil then self.directories.layers=dir.layers end
                     if dir.editor~=nil then self.directories.editor=dir.editor end
                     if dir.sprites~=nil then self.directories.sprites=dir.sprites end
+                    if dir.music~=nil then self.directories.music=dir.music end
                 end
                 if info.scale~=nil then 
                     self:setScale(info.scale[1], info.scale[2]) 
@@ -63,6 +64,9 @@ return {
                                     minus=love.graphics.newImage(self.directories.editor .. "/down.png"),
                                     checkYes=love.graphics.newImage(self.directories.editor .. "/checkyes.png"),
                                     checkNo=love.graphics.newImage(self.directories.editor .. "/checkno.png"),
+                                    play=love.graphics.newImage(self.directories.editor .. "/play-button.png"),
+                                    pause=love.graphics.newImage(self.directories.editor .. "/pause-button.png"),
+                                    musicNote=love.graphics.newImage(self.directories.editor .. "/musicnote.png"),
                 } 
 
                 --preload scene images from scene folder.
@@ -129,16 +133,17 @@ return {
                 for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
                 for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
             end,
-            load=function(self, data)
-                local data, len=binser.readFile(self.path .. "/" .. self.name)
+            load=function(self, name)
                 self:clean()
+                local data, len=binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
+                --this needs to be done differently for layers because of images
                 self.layers=data.layers 
                 self.objects=data.objects
             end,
             save=function(self)
                 --serialize it and write to a file
                 --add scene info here as well, like name, x, y, width, height, etc.
-                binser.writeFile(self.path .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
+                binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
             end,
             addLayer=function(self, data)
                 if data.scroll==nil then
@@ -266,7 +271,7 @@ return {
                     end
                 end
             end,
-            drawLayer=function(self, layer)
+            drawLayer=function(self, layer, canvas)
                 local c={}
                 c[1], c[2], c[3], c[4]=love.graphics.getColor()
                 local a=c[4]
@@ -297,7 +302,8 @@ return {
                             end
                         end
                         self:drawObjects(layer.id) 
-                        love.graphics.setCanvas()
+                        if canvas~=nil then love.graphics.setCanvas(canvas) love.graphics.clear() end
+
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
                         --if tiled background, draw around it 4x
                         --and offset, and then if > then layer offset going lower than 0 wrap around, same with great than screen width.
@@ -310,6 +316,7 @@ return {
                         end
 
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
+                        if canvas~=nil then love.graphics.setCanvas() end
                 end
             end,
             draw=function(self, customFunc, x, y)
@@ -319,15 +326,11 @@ return {
                 end
                 if x==nil then x=self.x end
                 if y==nil then y=self.y end
-                love.graphics.setCanvas(self.canvas.scene)
                 love.graphics.clear()
                 for il,layer in ipairs(self.layers) do 
-                        self:drawLayer(layer)
+                        self:drawLayer(layer, self.canvas.scene)
                 end
-
-
-                love.graphics.setCanvas()
-                love.graphics.draw(self.canvas.scene, x, y, 0, self.scale.x, self.scale.y)
+                love.graphics.draw(self.canvas.scene, x, y, 0)
                 if self.editing==true then 
                     self:drawEditor() 
                     love.graphics.draw(self.canvas.editor, 0, 0, 0, self.editorScale.x, self.editorScale.y)
@@ -633,6 +636,7 @@ return {
                 love.graphics.print("using: ", xspot-32, 0)
                 local img=self.guiImages.objDrop
                 if self.editState=="move layer" then img=self.guiImages.moveLayer end
+                if self.editState=="move camera" then img=self.guiImages.moveLayer end
                 if self.editState=="move" then img=self.guiImages.objMove end
                 if self.editState=="delete" then img=self.guiImages.objDel end
 
@@ -731,14 +735,6 @@ return {
                             self.editState="move layer"
                         end
                         self.layers[self.activeLayer].visible=self:updateCheckbox("visible",  x, y+24, self.layers[self.activeLayer].visible)
-
-
-                    --[[
-                        local y=y+font:getHeight()
-
-                        x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
-                        if self:mouseCollide({x=x, y=y, width=24, height=24}, true) then self.editState="load background" end
-                    --]]
             end,
             drawButton=function(self, image, x, y, lighten, tooltip)
                 if lighten then love.graphics.setColor(1, 1, 1, 1) else love.graphics.setColor(0.5, 0.5, 0.5, 1) end
@@ -813,9 +809,87 @@ return {
                 x=x+font:getWidth(name .. ": ")
                 self:drawButton(img, x, y, ((self:mouseCollide({x=x, y=y, width=16, height=16}, true)) or (data==true)), "set " .. name)
             end,
-            drawSceneMenu=function(self)
+            updateTextButton=function(self, title, x, y)
+                local font=love.graphics.getFont()
+                local window={x=x, y=y, width=font:getWidth(title)+8, height=font:getHeight()+6}
+
+                if self.mouseCollide(window, true) and self.cooldown==0.0 and love.mouse.isDown(1) then
+                    self.cooldown=1.0
+                    return true
+                end                    
+                return false
+            end,
+            drawTextButton=function(self, title, x, y)
+                local oldColor={}
+                local font=love.graphics.getFont()
+                local window={x=x, y=y, w=font:getWidth(title)+8, h=font:getHeight()+6}
+
+                oldColor[1], oldColor[2], oldColor[3], oldColor[4]=love.graphics.getColor()
+                local b, o={136/255, 136/255, 153/255, 0.8}, {51/255, 51/255, 85/255}
+                --if mouse over, reverse colors
+                if self:mouseCollide({x=window.x, y=window.y, width=window.w, height=window.h}, true) then
+                    local ob=b 
+                    b=o 
+                    o=ob
+                end
+                love.graphics.setColor(b[1], b[2], b[3], b[4])
+                love.graphics.rectangle("fill", window.x, window.y, window.w, window.h)
+                love.graphics.setColor(o[1], o[2], o[3], o[4])
+                love.graphics.rectangle("line", window.x, window.y, window.w, window.h)
+                love.graphics.setColor(oldColor[1], oldColor[2], oldColor[3], oldColor[4])
+                love.graphics.print(title, x+4, y+2)
+            end,
+            
+            updateSceneMenu=function(self)
+                local font=love.graphics.getFont()
                 self.topMenuSize=135/self.editorScale.y
-                love.graphics.print("Hello", 15, 15)
+                local center=(love.graphics.getWidth()/self.editorScale.x)/2
+                local x=(love.graphics.getWidth()/self.editorScale.x)-45
+
+                --[[
+                     self:drawButton(self.guiImages.musicNote, x, 25, (self:mouseCollide({x=x, y=25, width=24, height=24}, true)), "select background music")  
+                                --load sound file, etc
+                    if not self.playing then
+                        love.graphics.draw(self.guiImages.play, x+24, 25)
+                    else
+                        love.graphics.draw(self.guiImages.pause, x+24, 25)
+                    end
+                ]]
+                if self:mouseCollide({x=x, y=25+24, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                    self.cooldown=1.0
+                    self.editState="move camera"
+                end
+
+            end,
+            drawSceneMenu=function(self)
+                local font=love.graphics.getFont()
+                self.topMenuSize=135/self.editorScale.y
+                local center=(love.graphics.getWidth()/self.editorScale.x)/2
+                if self.name=="" then self.name="untitled" end
+
+                --make mouse over "click here to change scene name", and then add a text box edit for the scene name.
+                love.graphics.print("-" .. self.name .. "-", center-(font:getWidth("-" .. self.name .. "-")/2), 20)
+                love.graphics.print("camera: x:" .. self.x .. " y:" .. self.y, center-(font:getWidth("-" .. self.name .. "-")/2), 32)
+                love.graphics.print("size: w:" .. self.size.width .. " h:" .. self.size.height, center-(font:getWidth("-" .. self.name .. "-")/2), 44)
+
+                local x=8
+                self:drawTextButton("new", x, 25)
+                self:drawTextButton("load", x, 47)
+                self:drawTextButton("save", x, 68)
+
+
+                local x=(love.graphics.getWidth()/self.editorScale.x)-45
+
+                     self:drawButton(self.guiImages.musicNote, x, 25, (self:mouseCollide({x=x, y=25, width=24, height=24}, true)), "select background music")  
+                                --load sound file, etc
+                    if not self.playing then
+                        love.graphics.draw(self.guiImages.play, x+24, 25)
+                    else
+                        love.graphics.draw(self.guiImages.pause, x+24, 25)
+                    end
+
+                    self:drawButton(self.guiImages.moveLayer, x, 25+24,(self.editState=="move camera" or self:mouseCollide({x=x, y=25+24, width=24, height=24}, true)), "move scene camera") 
+
             end,
             drawLayerMenu=function(self)
                 self.topMenuSize=148/self.editorScale.y
@@ -950,6 +1024,19 @@ return {
                                             self.last=nil
                                         end
 
+                                        --move camera if that's the tool
+                                        
+                                        if self.editState=="move camera" and love.mouse.isDown(1) then
+                                            local mx, my=self:scaleMousePosition(false)
+                                            if self.last2==nil then self.last2={x=mx, y=my} end
+                                            self.x=self.x+(mx-self.last2.x)
+                                            self.y=self.y+(my-self.last2.y)
+                                            self.last2.x=mx
+                                            self.last2.y=my
+                                        else
+                                            self.last2=nil
+                                        end
+
                                         --drop an object on the map
                                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                                             if self.dropObject~=nil and self.editState=="drop" then
@@ -995,6 +1082,9 @@ return {
                                         end
                                         if self.topMenuHide==false and self.editorState=="layers" then
                                             self:updateLayerMenu()
+                                        end
+                                        if self.topMenuHide==false and self.editorState=="scene" then
+                                            self:updateSceneMenu()
                                         end
                         else
                             if self.editorState=="select image" then
