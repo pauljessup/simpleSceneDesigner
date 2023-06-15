@@ -153,6 +153,7 @@ return {
                     data.scroll.constant.x=false
                     data.scroll.constant.y=false
                 end
+                if data.reverse==nil then data.reverse=false end 
 
                 if data.alpha==nil then data.alpha=1.0 end 
                 if data.x==nil then data.x=0 end
@@ -352,8 +353,13 @@ return {
             end,
             moveLayer=function(self, layer, x, y)
                 local layer=self.layers[layer]
-                layer.x=layer.x+(x*layer.scroll.speed)
-                layer.y=layer.y+(y*layer.scroll.speed)
+                local move={x=layer.scroll.speed*x, y=layer.scroll.speed*y}
+                if layer.reverse then 
+                    move.x=move.x*-1
+                    move.y=move.y*-1
+                end
+                layer.x=layer.x+(move.x)
+                layer.y=layer.y+(move.y)
             end,
             draw=function(self, customFunc, x, y)
                 if type(customFunc)=="number" then 
@@ -780,6 +786,9 @@ return {
                             self.editState="move layer"
                         end
                         self.layers[self.activeLayer].visible=self:updateCheckbox("visible",  x, y+24, self.layers[self.activeLayer].visible)
+
+                        local lineup=font:getWidth("reverse")-font:getWidth("visible")
+                        self.layers[self.activeLayer].reverse=self:updateCheckbox("reverse ", x-lineup, y+36, self.layers[self.activeLayer].reverse)
             end,
             drawButton=function(self, image, x, y, lighten, tooltip)
                 if lighten then love.graphics.setColor(1, 1, 1, 1) else love.graphics.setColor(0.5, 0.5, 0.5, 1) end
@@ -817,7 +826,7 @@ return {
                                 data=data-0.05
                             end
                         end
-                        if data<0.01 then data=0.00 end
+                        if data<0.00 then data=0.00 end
                 return data
             end,
             numberBox=function(self, name, x, y, data)
@@ -975,6 +984,9 @@ return {
                 self:drawButton(self.guiImages.moveLayer, x+48, y, (self.editState=="move layer" or self:mouseCollide({x=x+48, y=y, width=24, height=24}, true)), "reposition layer")
 
                 self:drawCheckbox("visible ", x, y+24, self.layers[self.activeLayer].visible)
+                local lineup=font:getWidth("reverse")-font:getWidth("visible")
+                self:drawCheckbox("reverse ", x-lineup, y+36, self.layers[self.activeLayer].reverse)
+
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectMenu=function(self)
