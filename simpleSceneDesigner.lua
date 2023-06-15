@@ -321,7 +321,9 @@ return {
             end,
             --precise placement.
             placeCamera=function(self, x, y)
-
+                --this makes sure when it's placed that the sublayers are moved correctly
+                --by finding the diference between current location and new location.
+                self:moveCamera(x-self.x, y-self.y)
             end,
             --relative movement.
             moveCamera=function(self, x, y)
