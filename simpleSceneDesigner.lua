@@ -180,6 +180,7 @@ return {
                 data.scene=self.name
                 self.objects[data.id]=data
             end,
+
             update=function(self, customFunc, dt)
                 if type(customFunc)=="number" then 
                     dt=customFunc
@@ -189,6 +190,10 @@ return {
 
                 if self.editing==true then
                     self:updateEditor(dt)
+                end
+
+                for i=1, #self.layers do
+                    self:updateLayer(i, dt)
                 end
 
                 for ob, object in ipairs(self.objects) do 
@@ -203,6 +208,18 @@ return {
                 end
 
                 table.sort(self.zsort, drawSort)
+            end,
+            updateLayer=function(self, layer, dt)
+                local id=layer
+                layer=self.layers[layer]
+                local move={x=0, y=0}
+                if layer.scroll.constant.x==true then
+                    move.x=layer.scroll.speed
+                end
+                if layer.scroll.constant.y==true then
+                    move.y=layer.scroll.speed
+                end
+                self:moveLayer(id, move.x, move.y)
             end,
             ---allow the dev to query layers and objects, in case they want
             --to use something other than the simpleScene's default system for drawing and updating.
