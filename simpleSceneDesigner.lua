@@ -302,7 +302,7 @@ return {
                             end
                         end
                         self:drawObjects(layer.id) 
-                        if canvas~=nil then love.graphics.setCanvas(canvas) love.graphics.clear() end
+                        if canvas~=nil then love.graphics.setCanvas(canvas) end
 
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
                         --if tiled background, draw around it 4x
@@ -319,6 +319,23 @@ return {
                         if canvas~=nil then love.graphics.setCanvas() end
                 end
             end,
+            --precise placement.
+            placeCamera=function(self, x, y)
+
+            end,
+            --relative movement.
+            moveCamera=function(self, x, y)
+                self.x=self.x+x
+                self.y=self.y+y
+                for i,v in ipairs(self.layers) do
+                    self:moveLayer(i, x, y)
+                end
+            end,
+            moveLayer=function(self, layer, x, y)
+                local layer=self.layers[layer]
+                layer.x=layer.x+(x*layer.scroll.speed)
+                layer.y=layer.y+(y*layer.scroll.speed)
+            end,
             draw=function(self, customFunc, x, y)
                 if type(customFunc)=="number" then 
                     x=customFunc
@@ -326,7 +343,11 @@ return {
                 end
                 if x==nil then x=self.x end
                 if y==nil then y=self.y end
+                --clear the canvas before drawing.
+                love.graphics.setCanvas(self.canvas.scene)
                 love.graphics.clear()
+                love.graphics.setCanvas()
+
                 for il,layer in ipairs(self.layers) do 
                         self:drawLayer(layer, self.canvas.scene)
                 end
@@ -353,10 +374,6 @@ return {
   
                 self.objectTypes[type.type]=type
                 self.editorObject[#self.editorObject+1]=type.type
-            end,
-            moveLayer=function(self, layer, x, y)
-                self.layers[layer].x=x
-                self.layers[layer].y=y
             end,
             moveScene=function(self, x, y)
                 self.x=x
@@ -1027,10 +1044,8 @@ return {
                                         --move layer if that's the tool
                                         if self.editState=="move layer" and love.mouse.isDown(1) then
                                             local mx, my=self:scaleMousePosition(false)
-                                            local layer=self.layers[self.activeLayer]
                                             if self.last==nil then self.last={x=mx, y=my} end
-                                            layer.x=layer.x+(mx-self.last.x)
-                                            layer.y=layer.y+(my-self.last.y)
+                                            self:moveLayer(self.activeLayer, mx-self.last.x, my-self.last.y)
                                             self.last.x=mx
                                             self.last.y=my
                                         else
@@ -1042,8 +1057,9 @@ return {
                                         if self.editState=="move camera" and love.mouse.isDown(1) then
                                             local mx, my=self:scaleMousePosition(false)
                                             if self.last2==nil then self.last2={x=mx, y=my} end
-                                            self.x=self.x+(mx-self.last2.x)
-                                            self.y=self.y+(my-self.last2.y)
+                                            --self.x=self.x+(mx-self.last2.x)
+                                            --self.y=self.y+(my-self.last2.y)
+                                            self:moveCamera(mx-self.last2.x, my-self.last2.y)
                                             self.last2.x=mx
                                             self.last2.y=my
                                         else
