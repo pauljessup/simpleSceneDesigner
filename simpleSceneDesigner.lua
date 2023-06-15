@@ -587,6 +587,15 @@ return {
                         end
                 end
             end,
+            sceneToScreen=function(self, x, y)
+
+            end,
+            screenToScene=function(self, x, y)
+                --first we scale.
+                x=x/self.scale.x
+                y=y/self.scale.y
+
+            end,
             drawEditor=function(self)
                 love.graphics.setCanvas(self.canvas.editor)
                 love.graphics.clear()
@@ -860,6 +869,9 @@ return {
                     self.editState="move camera"
                 end
 
+                self.scale.x=self:updateNumberBox("scale", x-62, 25+24+24, self.scale.x)
+                self.scale.y=self.scale.x
+
             end,
             drawSceneMenu=function(self)
                 local font=love.graphics.getFont()
@@ -889,6 +901,7 @@ return {
                     end
 
                     self:drawButton(self.guiImages.moveLayer, x, 25+24,(self.editState=="move camera" or self:mouseCollide({x=x, y=25+24, width=24, height=24}, true)), "move scene camera") 
+                    self:numberBox("scale", x-62, 25+24+24, self.scale.x)
 
             end,
             drawLayerMenu=function(self)
