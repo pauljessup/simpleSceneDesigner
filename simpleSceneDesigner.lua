@@ -358,7 +358,10 @@ return {
                 self.x=self.x+x
                 self.y=self.y+y
                 for i,v in ipairs(self.layers) do
-                    self:moveLayer(i, x, y)
+                    local lx, ly=x, y 
+                    if v.scroll.constant.x==true then lx=0 end 
+                    if v.scroll.constant.y==true then ly=0 end
+                    self:moveLayer(i, lx, ly)
                 end
             end,
             moveLayer=function(self, layer, x, y)
