@@ -145,6 +145,11 @@ return {
                 --add scene info here as well, like name, x, y, width, height, etc.
                 binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
             end,
+            setBackgroundImage=function(self, layer, file, image)
+                self.layers[layer].imageName=file
+                self.layers[layer].image=image
+                self.layers[layer].canvas=love.graphics.newCanvas(image:getWidth(), image:getHeight())
+            end,
             addLayer=function(self, data)
                 if data.scroll==nil then
                     data.scroll={}
@@ -158,15 +163,15 @@ return {
                 if data.alpha==nil then data.alpha=1.0 end 
                 if data.x==nil then data.x=0 end
                 if data.y==nil then data.y=0 end
-                if data.image then
-                    data.imageName=data.image
-                    data.image=love.graphics.newImage(self.directories.layers .. data.image)
-                end
                 if data.visible==nil then data.visible=true end
 
                 data.canvas=love.graphics.newCanvas(self.size.width, self.size.height)
                 data.id=#self.layers+1
                 self.layers[data.id]=data
+                if data.image then
+                    local image=love.graphics.newImage(self.directories.layers .. data.image)
+                    self:setBackgroundImage(data.id, self.directories.layers .. data.image, image) 
+                end
             end,
             addObject=function(self, data)
                 --sanity check
@@ -442,8 +447,9 @@ return {
                 if endPage>#self.sceneImages then endPage=#self.sceneImages end
 
                 local font=love.graphics.getFont()
-                local cx, cy, cw, ch=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10)), font:getWidth("CANCEL")+4, font:getHeight()+4
-                if self:mouseCollide({x=cx, y=cy, width=cw, height=ch}, true) and self.cooldown==0.0 and love.mouse.isDown(1) then
+                local cx, cy=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10))
+                
+                if self:updateTextButton("CANCEL", cx, cy) then 
                     self.cooldown=1.0
                     self.messageBox=false
                     self.editorState=self.oldState
@@ -481,18 +487,16 @@ return {
 
                 y=y+(font:getHeight()*2)
 
-                --add ability to cancel this by clicking outside the window.
-
-                --do pagination here.
                 if self.selectPage==nil then self.selectPage=1 end
                 local endPage=self.selectPage+5
                 
 
                 if endPage>#self.sceneImages then endPage=#self.sceneImages end
 
-                local cx, cy, cw, ch=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10)), font:getWidth("CANCEL")+4, font:getHeight()+4
-                self:drawWindow({x=cx, y=cy, w=font:getWidth("CANCEL")+4, w=cw, h=ch})
-                love.graphics.print("CANCEL", cx+2, cy+2) 
+                local cx, cy=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10))                
+                self:drawTextButton("CANCEL", cx, cy)
+                
+                
                 if self.selectPage>1 then
                     love.graphics.draw(self.guiImages.arrow, window.x+10, window.y+(window.h/2), math.rad(-90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
                 end
@@ -510,9 +514,7 @@ return {
                         col=1 
                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                             self.cooldown=1.0
-                            self.layers[self.activeLayer].imageName=file.name
-                            self.layers[self.activeLayer].image=self.sceneImages[i].image
-                            self.layers[self.activeLayer].canvas=love.graphics.newCanvas(self.sceneImages[i].image:getWidth(), self.sceneImages[i].image:getHeight())
+                            self:setBackgroundImage(self.activeLayer, file.name, self.sceneImages[i].image)
                             self.messageBox=false
                             self.editorState=self.oldState
                             self.oldState=nil
@@ -867,7 +869,7 @@ return {
                 local font=love.graphics.getFont()
                 local window={x=x, y=y, width=font:getWidth(title)+8, height=font:getHeight()+6}
 
-                if self.mouseCollide(window, true) and self.cooldown==0.0 and love.mouse.isDown(1) then
+                if self:mouseCollide(window, true) and self.cooldown==0.0 and love.mouse.isDown(1) then
                     self.cooldown=1.0
                     return true
                 end                    
