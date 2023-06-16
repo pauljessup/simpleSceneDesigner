@@ -27,7 +27,7 @@ return {
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
-            directories={scenes="", layers="", editor="", sprites=""},
+            directories={scenes="", layers="", editor="", sprites="", music=""},
            init=function(self, info)
                 local dir=info.directories
                 if dir~=nil then
@@ -75,6 +75,15 @@ return {
                 for i,file in ipairs(files) do
                     if string.find(file, ".png") then
                         self.sceneImages[#self.sceneImages+1]={name=file, image=love.graphics.newImage(self.directories.layers .. "/" .. file)}
+                    end
+                end
+
+                --preload scene music from scene folder.
+                local files = love.filesystem.getDirectoryItems(self.directories.music)
+                self.sceneMusic={}
+                for i,file in ipairs(files) do
+                    if string.find(file, ".mp3") or string.find(file, ".wav") or string.find(file, ".ogg") then
+                        self.sceneMusic[#self.sceneMusic+1]={name=file, music=love.audio.newSource(self.directories.music .. "/" .. file, "stream")}
                     end
                 end
            end,
@@ -427,6 +436,9 @@ return {
                 if self.editorState=="select image" then
                     self:updateImageSelect({x=x, y=y, w=w, h=h})
                 end
+                if self.editorState=="select music" then
+                    self:updateMusicSelect({x=x, y=y, w=w, h=h})
+                end
             end,
             drawMsgBox=function(self)
                 love.graphics.setColor(0, 0, 0, 0.8)
@@ -438,7 +450,134 @@ return {
                 if self.editorState=="select image" then
                     self:drawImageSelect({x=x, y=y, w=w, h=h})
                 end
+                if self.editorState=="select music" then
+                    self:drawMusicSelect({x=x, y=y, w=w, h=h})
+                end
                 return {x=x, y=y, w=w, h=h}
+            end,
+            stopAllMusic=function(self)
+                for i,v in ipairs(self.sceneMusic) do
+                    v.music:stop()
+                end
+                self.playing=false
+            end,
+            updateMusicSelect=function(self, window)
+                if self.selectMusicPage==nil then self.selectMusicPage=1 end
+                local font=love.graphics.getFont()
+                local cx, cy=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10))
+                if self:updateTextButton("CANCEL", cx, cy) then 
+                    self.cooldown=1.0
+                    self.messageBox=false
+                    self.editorState=self.oldState
+                    self.oldState=nil
+                    self.selectMusicPage=1
+                    self:stopAllMusic()
+                end
+                local listHt=font:getHeight()+(cy-32)
+                local listTotal=math.floor(listHt/(font:getHeight()+19))
+
+                --list music here, with play button next to it so you can preview it.
+                --add up and down arrows
+                local pgTotal=self.selectMusicPage+listTotal 
+                if pgTotal>#self.sceneMusic then pgTotal=#self.sceneMusic end
+
+                local y=window.y+13
+                
+                --y=y+13
+                y=y+20
+                --add up and down arrows for pagination.
+                if self:mouseCollide({x=window.x+((window.w/2)-(self.guiImages.arrow:getWidth()/2)), y=y, width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                    self.cooldown=1.0
+                    self.selectMusicPage=self.selectMusicPage-1
+                    if self.selectMusicPage<1 then self.selectMusicPage=1 end
+                end
+                if self:mouseCollide({x=window.x+((window.w/2)-(self.guiImages.arrow:getWidth()/2)), y=window.y+(window.h-(font:getHeight()+30)), width=self.guiImages.arrow:getWidth(), height=self.guiImages.arrow:getHeight()}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                    self.cooldown=1.0
+                    self.selectMusicPage=self.selectMusicPage+1
+                    if self.selectMusicPage>#self.sceneMusic then self.selectMusicPage=#self.sceneMusic end
+                end
+                local i=1
+                for offset=self.selectMusicPage, pgTotal do
+                    love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                    local fname=self.sceneMusic[offset].name
+                    if font:getWidth(fname)>(window.w*0.75) then 
+                        local t=math.floor((window.w*0.75)/font:getWidth("A"))
+                        fname=fname:sub(1, t)
+                        fname=fname .. "..."
+                    end
+                    if self:mouseCollide({x=window.x+13, y=y+(i*(font:getHeight()+6)), width=font:getWidth(fname), height=font:getHeight()+5}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then 
+                        --selects the song.
+                        self:stopAllMusic()
+                        self.cooldown=1.0
+                        self.messageBox=false
+                        self.editorState=self.oldState
+                        self.oldState=nil
+                        self.songSelected=nil
+                        self.music={name=self.sceneMusic[offset].name, music=offset}
+                        self.selectMusicPage=1
+                    end
+                    local x, y2=window.x+23+(font:getWidth(fname)), y+(i*(font:getHeight()+6))
+                    if self.songSelected==offset then
+                        if (self:mouseCollide({x=x, y=y2, width=24, height=24}, true)) and self.cooldown==0.0 and love.mouse.isDown(1) then
+                            self.cooldown=1.0
+                            self:stopAllMusic()
+                            self.songSelected=nil 
+                        end
+                    else
+                        if (self:mouseCollide({x=x, y=y2, width=24, height=24}, true)) and self.cooldown==0.0 and love.mouse.isDown(1) then
+                            self.cooldown=1.0
+                            self:stopAllMusic()
+                            self.songSelected=offset
+                            self.sceneMusic[offset].music:setLooping(true)
+                            self.sceneMusic[offset].music:play()
+                        end
+                    end
+                    i=i+1
+                end
+
+            end,
+            drawMusicSelect=function(self, window)
+                local title="-select scene music-"                
+                if self.selectMusicPage==nil then self.selectMusicPage=1 end
+
+                local font=love.graphics.getFont()
+                local cx, cy=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+13))                
+                self:drawTextButton("CANCEL", cx, cy)
+                local listHt=font:getHeight()+(cy-32)
+                local listTotal=math.floor(listHt/(font:getHeight()+19))
+
+                --list music here, with play button next to it so you can preview it.
+                --add up and down arrows
+                local pgTotal=self.selectMusicPage+listTotal 
+                if pgTotal>#self.sceneMusic then pgTotal=#self.sceneMusic end
+
+                local y=window.y+13
+                love.graphics.print(title, window.x+((window.w/2)-(font:getWidth(title)/2)), y)
+
+                y=y+20
+                if self.selectMusicPage>1 then love.graphics.draw(self.guiImages.arrow, window.x+((window.w/2)-(self.guiImages.arrow:getWidth()/2)), y) end
+                if self.selectMusicPage<#self.sceneMusic then love.graphics.draw(self.guiImages.arrow, window.x+((window.w/2)-(self.guiImages.arrow:getWidth()/2)), window.y+(window.h-(font:getHeight()+20)), 0, 1, -1) end
+
+                local yoffset=1
+                for i=self.selectMusicPage, pgTotal do
+                    love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                    local fname=self.sceneMusic[i].name
+                    if font:getWidth(fname)>(window.w*0.75) then 
+                        local t=math.floor((window.w*0.75)/font:getWidth("A"))
+                        fname=fname:sub(1, t)
+                        fname=fname .. "..."
+                    end
+                    if self:mouseCollide({x=window.x+13, y=y+(yoffset*(font:getHeight()+6)), width=font:getWidth(fname), height=font:getHeight()+5}, true) then love.graphics.setColor(1, 1, 1, 1) end
+                    love.graphics.print(fname, window.x+13, y+(yoffset*(font:getHeight()+6)))
+                    local x, y2=window.x+23+(font:getWidth(fname)), y+(yoffset*(font:getHeight()+6))
+                    if self.songSelected==i then
+                        self:drawButton(self.guiImages.pause, x, y2, (self:mouseCollide({x=x, y=y2, width=24, height=24}, true)), "play background music")
+                    else
+                        self:drawButton(self.guiImages.play, x, y2, (self:mouseCollide({x=x, y=y2, width=24, height=24}, true)), "play background music")
+                    end
+                    yoffset=yoffset+1
+                end
+                
             end,
 
             updateImageSelect=function(self, window)
@@ -902,16 +1041,32 @@ return {
                 local center=(love.graphics.getWidth()/self.editorScale.x)/2
                 local x=(love.graphics.getWidth()/self.editorScale.x)-45
 
-                --[[
-                     self:drawButton(self.guiImages.musicNote, x, 25, (self:mouseCollide({x=x, y=25, width=24, height=24}, true)), "select background music")  
-                                --load sound file, etc
-                    if not self.playing then
-                        love.graphics.draw(self.guiImages.play, x+24, 25)
-                    else
-                        love.graphics.draw(self.guiImages.pause, x+24, 25)
-                    end
-                ]]
-                if self:mouseCollide({x=x, y=25+24, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                if self:mouseCollide({x=x+24, y=25, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
+                    self.oldState=self.editorState
+                    self.editorState="select music"
+                    self.messageBox=true
+                end
+                
+                if self.music~=nil then
+                                if not self.playing then
+                                   if (self:mouseCollide({x=x, y=25, width=24, height=24}, true))  and love.mouse.isDown(1) and self.cooldown==0.0 then
+                                        self.cooldown=1.0
+                                        self.sceneMusic[self.music.music].music:setLooping(true)
+                                        self.sceneMusic[self.music.music].music:play()
+                                        self.playing=true
+                                   end
+                                else
+                                    if (self:mouseCollide({x=x, y=25, width=24, height=24}, true))  and love.mouse.isDown(1) and self.cooldown==0.0 then
+                                        self.cooldown=1.0
+                                        self:stopAllMusic()
+                                        self.playing=false
+                                    end
+                                end
+                 end
+
+
+
+                if self:mouseCollide({x=x+24, y=25+24, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
                     self.cooldown=1.0
                     self.editState="move camera"
                 end
@@ -1152,6 +1307,9 @@ return {
                                         end
                         else
                             if self.editorState=="select image" then
+                                self:updateMsgBox()
+                            end
+                            if self.editorState=="select music" then
                                 self:updateMsgBox()
                             end
                         end
