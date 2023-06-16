@@ -763,19 +763,34 @@ return {
                 end
             end,
             sceneToScreen=function(self, x, y)
-
+                x=x+self.x
+                y=y+self.y
+                x=x*self.scale.x
+                y=y*self.scale.y
+                return x, y
             end,
             screenToScene=function(self, x, y)
                 x=x/self.scale.x
                 y=y/self.scale.y
-                x=x+(self.x*-1)
-                y=y+(self.y*-1)
+                x=x-self.x
+                y=y-self.y
+                return x, y
             end,
             screenToLayer=function(self, layer, x, y)
-
+                local layer=self.layers[layer]
+                x=x/self.scale.x
+                y=y/self.scale.y       
+                x=x-layer.x 
+                y=y-layer.y
+                return x, y     
             end,
             layertoScreen=function(self, layer, x, y)
-
+                local layer=self.layers[layer]    
+                x=x+layer.x 
+                y=y+layer.y
+                x=x*self.scale.x
+                y=y*self.scale.y   
+                return x, y
             end,
             drawEditor=function(self)
                 love.graphics.setCanvas(self.canvas.editor)
