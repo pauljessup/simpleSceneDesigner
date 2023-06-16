@@ -939,15 +939,17 @@ return {
 
                 local x=(love.graphics.getWidth()/self.editorScale.x)-45
 
-                     self:drawButton(self.guiImages.musicNote, x, 25, (self:mouseCollide({x=x, y=25, width=24, height=24}, true)), "select background music")  
+                     self:drawButton(self.guiImages.musicNote, x+24, 25, (self:mouseCollide({x=x+24, y=25, width=24, height=24}, true)), "select background music")  
                                 --load sound file, etc
-                    if not self.playing then
-                        love.graphics.draw(self.guiImages.play, x+24, 25)
-                    else
-                        love.graphics.draw(self.guiImages.pause, x+24, 25)
-                    end
+                        if self.music~=nil then
+                                if not self.playing then
+                                    self:drawButton(self.guiImages.play, x, 25, (self:mouseCollide({x=x, y=25, width=24, height=24}, true)), "play background music") 
+                                else
+                                    self:drawButton(self.guiImages.pause, x, 25, (self:mouseCollide({x=x, y=25, width=24, height=24}, true)), "pause background music") 
+                                end
+                        end
 
-                    self:drawButton(self.guiImages.moveLayer, x, 25+24,(self.editState=="move camera" or self:mouseCollide({x=x, y=25+24, width=24, height=24}, true)), "move scene camera") 
+                    self:drawButton(self.guiImages.moveLayer, x+24, 25+24,(self.editState=="move camera" or self:mouseCollide({x=x+24, y=25+24, width=24, height=24}, true)), "move scene camera") 
                     self:numberBox("scale", x-62, 25+24+24, self.scale.x)
 
             end,
