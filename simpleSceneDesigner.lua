@@ -303,7 +303,7 @@ return {
                     end
                 end
             end,
-            drawLayer=function(self, layer, canvas)
+            drawLayer=function(self, layer)
                 local c={}
                 c[1], c[2], c[3], c[4]=love.graphics.getColor()
                 local a=c[4]
@@ -334,21 +334,17 @@ return {
                             end
                         end
                         self:drawObjects(layer.id) 
-                        if canvas~=nil then love.graphics.setCanvas(canvas) end
+                        love.graphics.setCanvas()
 
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
-                        --if tiled background, draw around it 4x
-                        --and offset, and then if > then layer offset going lower than 0 wrap around, same with great than screen width.
                         if layer.tiled==true and layer.image~=nil then
                                 layer.canvas:setWrap("repeat", "repeat")
                                 local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, self.size.width, self.size.height, layer.image:getWidth(), layer.image:getHeight())	
                                 love.graphics.draw(layer.canvas, quad, 0, 0, 0, self.scale.x, self.scale.y)
                         else
-                            love.graphics.draw(layer.canvas, layer.x*self.scale.x, layer.y*self.scale.y, 0, self.scale.x, self.scale.y)
+                            love.graphics.draw(layer.canvas, (layer.x*self.scale.x), (layer.y*self.scale.y), 0, self.scale.x, self.scale.y)
                         end
-
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
-                        if canvas~=nil then love.graphics.setCanvas() end
                 end
             end,
             --precise placement.
@@ -382,15 +378,12 @@ return {
                 end
                 if x==nil then x=self.x end
                 if y==nil then y=self.y end
-                --clear the canvas before drawing.
-                love.graphics.setCanvas(self.canvas.scene)
-                love.graphics.clear()
-                love.graphics.setCanvas()
+
 
                 for il,layer in ipairs(self.layers) do 
-                        self:drawLayer(layer, self.canvas.scene)
+                        self:drawLayer(layer)
                 end
-                love.graphics.draw(self.canvas.scene, x, y, 0)
+
                 if self.editing==true then 
                     self:drawEditor() 
                     love.graphics.draw(self.canvas.editor, 0, 0, 0, self.editorScale.x, self.editorScale.y)
@@ -709,7 +702,6 @@ return {
                         local layer=self.layers[self.activeLayer]
                         mx=mx-layer.x 
                         my=my-layer.y
-
                         if obj.draw~=nil then 
                             obj:draw({x=mx-(obj.width/2), y=my-(obj.height/2)})
                         else
@@ -774,9 +766,15 @@ return {
 
             end,
             screenToScene=function(self, x, y)
-                --first we scale.
                 x=x/self.scale.x
                 y=y/self.scale.y
+                x=x+(self.x*-1)
+                y=y+(self.y*-1)
+            end,
+            screenToLayer=function(self, layer, x, y)
+
+            end,
+            layertoScreen=function(self, layer, x, y)
 
             end,
             drawEditor=function(self)
@@ -1113,6 +1111,9 @@ return {
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
+                local txt="layer position: x:" .. self.layers[self.activeLayer].x .. " y:" .. self.layers[self.activeLayer].y
+                love.graphics.print(txt, ((love.graphics.getWidth()/self.editorScale.y)/2)-((font:getWidth(txt))/2), 20)
+
                 local totalText="layer: " .. self.activeLayer .. " of " .. #self.layers
                 love.graphics.print(totalText, 8, 20)                
                 local x,y=8, 23+font:getHeight()
@@ -1145,7 +1146,6 @@ return {
                 self:drawCheckbox("visible ", x, y+24, self.layers[self.activeLayer].visible)
                 local lineup=font:getWidth("reverse")-font:getWidth("visible")
                 self:drawCheckbox("reverse ", x-lineup, y+36, self.layers[self.activeLayer].reverse)
-
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectMenu=function(self)
@@ -1247,8 +1247,6 @@ return {
                                         if self.editState=="move camera" and love.mouse.isDown(1) then
                                             local mx, my=self:scaleMousePosition(false)
                                             if self.last2==nil then self.last2={x=mx, y=my} end
-                                            --self.x=self.x+(mx-self.last2.x)
-                                            --self.y=self.y+(my-self.last2.y)
                                             self:moveCamera(mx-self.last2.x, my-self.last2.y)
                                             self.last2.x=mx
                                             self.last2.y=my
@@ -1270,10 +1268,11 @@ return {
                                                         mx=self.gridSize*(math.floor(mx/self.gridSize)) 
                                                         my=self.gridSize*(math.floor(my/self.gridSize)) 
                                                     end
-                                                    --adjust based on layer offset.
+                                                    --adjust based on layer offset and scene camera offset)
                                                     local layer=self.layers[self.activeLayer]
-                                                    mx=mx-layer.x 
-                                                    my=my-layer.y                            
+                                                    local mx=mx-layer.x
+                                                    local my=my-layer.y
+                                                    
                                                     self:addObject({type=type, layer=self.activeLayer, x=mx-(obj.width/2), y=my-(obj.height/2)})
                                                 end
                                             end
