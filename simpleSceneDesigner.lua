@@ -1,5 +1,28 @@
+local utf8 = require("utf8")
+
 local folderOfThisFile = (...):match("(.-)[^%.]+$")
 local function drawSort(a,b) return a.y+a.h < b.y+b.h end
+
+--text buffer stuff and typing stuff. Snurched from the wiki
+local textBuffer=""
+
+function love.textinput(t)
+    textBuffer = textBuffer .. t
+end
+
+function love.keypressed(key)
+    if key == "backspace" then
+        -- get the byte offset to the last UTF-8 character in the string.
+        local byteoffset = utf8.offset(textBuffer, -1)
+
+        if byteoffset then
+            -- remove the last UTF-8 character.
+            -- string.sub operates on bytes rather than UTF-8 characters, so we couldn't do string.sub(text, 1, -2).
+            textBuffer = string.sub(textBuffer, 1, byteoffset - 1)
+        end
+    end
+end
+
 
 return {
             editState="move",
@@ -22,6 +45,7 @@ return {
             binser=require(folderOfThisFile .. "binser"),
             editorObject={},
             topMenuSize=135,
+            textEditing=false,
             vars={},
             zsort={},
             cooldown=0.0, --so mousepresses don't repeat a ton.
@@ -86,6 +110,7 @@ return {
                         self.sceneMusic[#self.sceneMusic+1]={name=file, music=love.audio.newSource(self.directories.music .. "/" .. file, "stream")}
                     end
                 end
+                self.canvas=love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight())
            end,
            setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
@@ -128,13 +153,7 @@ return {
                 if vars.y==nil then vars.y=0 end
                 if vars.gridSize~=nil then self.gridSize=vars.gridSize else self.gridSize=8 end
 
-                if vars.width~=nil and vars.height~=nil then
-                    self.size={width=vars.width, height=vars.height}
-                else
-                    self.size={width=love.graphics:getWidth(), height=love.graphics:getHeight()}
-                end
                 self.vars=vars.vars
-                self.canvas={scene=love.graphics.newCanvas(self.size.width, self.size.height), editor=love.graphics.newCanvas(self.size.width, self.size.height)}
                 --first blank layer--
                 simpleScene:addLayer({x=0, y=0, type="basic"})
             end,
@@ -174,7 +193,7 @@ return {
                 if data.y==nil then data.y=0 end
                 if data.visible==nil then data.visible=true end
 
-                data.canvas=love.graphics.newCanvas(self.size.width, self.size.height)
+                data.canvas=love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight())
                 data.id=#self.layers+1
                 self.layers[data.id]=data
                 if data.image then
@@ -197,6 +216,8 @@ return {
             end,
 
             update=function(self, customFunc, dt)
+                if not self.textEditing then textBuffer="" end
+
                 if type(customFunc)=="number" then 
                     dt=customFunc
                 else
@@ -319,16 +340,6 @@ return {
                         end
                         --draw the grid if in editor and grid is set.
                         if self.editing then
-                            if self.useGrid==true then
-                                love.graphics.setColor(1, 1, 1, 0.12)
-                                for x=0, self.size.width, self.gridSize do
-                                    love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, self.size.height)
-                                end
-                                for y=0, self.size.width, self.gridSize do
-                                    love.graphics.line((-self.x), (-self.y)+y, self.size.width, (-self.y)+y)
-                                end
-                                love.graphics.setColor(c[1], c[2], c[3], c[4])
-                            end
                             if layer.id==self.activeLayer then
                                 self:mouseDrop()
                             end
@@ -339,7 +350,7 @@ return {
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
                         if layer.tiled==true and layer.image~=nil then
                                 layer.canvas:setWrap("repeat", "repeat")
-                                local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, self.size.width, self.size.height, layer.image:getWidth(), layer.image:getHeight())	
+                                local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, love.graphics.getWidth(), love.graphics.getHeight(), layer.image:getWidth(), layer.image:getHeight())	
                                 love.graphics.draw(layer.canvas, quad, 0, 0, 0, self.scale.x, self.scale.y)
                         else
                             love.graphics.draw(layer.canvas, (layer.x*self.scale.x), (layer.y*self.scale.y), 0, self.scale.x, self.scale.y)
@@ -355,8 +366,10 @@ return {
             end,
             --relative movement.
             moveCamera=function(self, x, y)
-                self.x=self.x+x
-                self.y=self.y+y
+                --this should offset the camera from the center of the screen,
+                --and not the upper left hand corner.
+                self.x=self.x-x
+                self.y=self.y-y
                 for i,v in ipairs(self.layers) do
                     local lx, ly=x, y 
                     if v.scroll.constant.x==true then lx=0 end 
@@ -388,8 +401,20 @@ return {
                 end
 
                 if self.editing==true then 
+                --[[
+                    if self.useGrid==true then
+                        love.graphics.setColor(1, 1, 1, 0.12)
+                        for x=0, self.size.width, self.gridSize*self.scale.x do
+                            love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, love.graphics.getHeight())
+                        end
+                        for y=0, self.size.width, self.gridSize*self.scale.y do
+                            love.graphics.line((-self.x), (-self.y)+y, love.graphics.getWidth(), (-self.y)+y)
+                        end
+                        love.graphics.setColor(1, 1, 1, 1)
+                    end
+                ]]
                     self:drawEditor() 
-                    love.graphics.draw(self.canvas.editor, 0, 0, 0, self.editorScale.x, self.editorScale.y)
+                    love.graphics.draw(self.canvas, 0, 0, 0, self.editorScale.x, self.editorScale.y)
                 end
                 if type(customFunc)=="function" then
                     customFunc(self, x, y)
@@ -410,13 +435,6 @@ return {
                 self.objectTypes[type.type]=type
                 self.editorObject[#self.editorObject+1]=type.type
             end,
-            moveScene=function(self, x, y)
-                self.x=x
-                self.y=y
-            end,
-            changeSceneSize=function(self, width, height)
-                self.size={width=width, height=height}
-            end,
 
             scaleMousePosition=function(self, editor)
                 local scale={x=self.scale.x, y=self.scale.y}
@@ -425,6 +443,20 @@ return {
                 mx=math.floor(mx/scale.x)
                 my=math.floor(my/scale.y)
                 return mx, my
+            end,
+            drawSmallMsgBox=function(self)
+                love.graphics.setColor(0, 0, 0, 0.8)
+                love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+                love.graphics.setColor(1, 1, 1, 1)
+                local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.5), ((love.graphics.getHeight()/self.editorScale.y)*0.2)
+                local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
+                self:drawWindow({x=x, y=y, w=w, h=h})
+                if self.editorState=="new scene" then
+                    local font=love.graphics.getFont()
+                    love.graphics.print("-name for new scene-", x+(w/2)-(font:getWidth("-name for new scene-")/2), y+5)
+                    --textbox. 
+                    --okay button.
+                end
             end,
             updateMsgBox=function(self)
                 local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.8), ((love.graphics.getHeight()/self.editorScale.y)*0.8)
@@ -796,13 +828,16 @@ return {
                 return x, y
             end,
             drawEditor=function(self)
-                love.graphics.setCanvas(self.canvas.editor)
+                love.graphics.setCanvas(self.canvas)
                 love.graphics.clear()
 
                 self:drawTopMenu()
 
                 if self.messageBox==true then
                     self:drawMsgBox()
+                end
+                if self.smallMessageBox==true then
+                    self:drawSmallMsgBox()
                 end
 
                 love.graphics.setCanvas()
@@ -850,8 +885,8 @@ return {
 
                 love.graphics.draw(img, xspot+15, 0)
 
-                love.graphics.print("working layer: " .. self.activeLayer, xspot-32-(font:getWidth("working layer:         ")))
-                --love.graphics.setColor(1, 1, 1, 1)
+                love.graphics.print("layer: " .. self.activeLayer .. "/" .. #self.layers, xspot-32-(font:getWidth("layer:         ")))
+                love.graphics.print("-" .. self.name .. "-",  (windowWidth/2)-(font:getWidth("-" .. self.name .. "-")/2))
 
             end,
             drawTopMenu=function(self)
@@ -1055,7 +1090,17 @@ return {
                 local font=love.graphics.getFont()
                 self.topMenuSize=135/self.editorScale.y
                 local center=(love.graphics.getWidth()/self.editorScale.x)/2
-                local x=(love.graphics.getWidth()/self.editorScale.x)-45
+
+                x=8
+                if self:updateTextButton("new", x, 25) then
+                    --make window say new created, with okay button.
+                    self.oldState=self.editorState
+                    self.editorState="new scene"
+                    self.smallMessageBox=true
+                end
+
+                x=(love.graphics.getWidth()/self.editorScale.x)-45
+
 
                 if self:mouseCollide({x=x+24, y=25, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
                     self.oldState=self.editorState
@@ -1097,10 +1142,8 @@ return {
                 local center=(love.graphics.getWidth()/self.editorScale.x)/2
                 if self.name=="" then self.name="untitled" end
 
-                --make mouse over "click here to change scene name", and then add a text box edit for the scene name.
-                love.graphics.print("-" .. self.name .. "-", center-(font:getWidth("-" .. self.name .. "-")/2), 20)
-                love.graphics.print("camera: x:" .. self.x .. " y:" .. self.y, center-(font:getWidth("-" .. self.name .. "-")/2), 32)
-                love.graphics.print("size: w:" .. self.size.width .. " h:" .. self.size.height, center-(font:getWidth("-" .. self.name .. "-")/2), 44)
+                self:drawTextButton(self.name, center-((font:getWidth("-" .. self.name .. "-")/2)+6), 20)
+                love.graphics.print("camera: x:" .. self.x .. " y:" .. self.y, center-((font:getWidth("-" .. self.name .. "-")/2)+6), 42)
 
                 local x=8
                 self:drawTextButton("new", x, 25)
@@ -1128,9 +1171,6 @@ return {
                 self.topMenuSize=148/self.editorScale.y
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
-
-                local txt="layer position: x:" .. self.layers[self.activeLayer].x .. " y:" .. self.layers[self.activeLayer].y
-                love.graphics.print(txt, ((love.graphics.getWidth()/self.editorScale.y)/2)-((font:getWidth(txt))/2), 20)
 
                 local totalText="layer: " .. self.activeLayer .. " of " .. #self.layers
                 love.graphics.print(totalText, 8, 20)                
