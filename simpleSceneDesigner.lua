@@ -166,15 +166,30 @@ return {
             end,
             load=function(self, name)
                 self:clean()
-                local data, len=binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
+                local data, len=self.binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
                 --this needs to be done differently for layers because of images
                 self.layers=data.layers 
                 self.objects=data.objects
+                --make sure images are correct. Since ID's might be off if new images are added.
             end,
             save=function(self)
-                --serialize it and write to a file
-                --add scene info here as well, like name, x, y, width, height, etc.
-                binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
+                local saveLayerdata={}
+                for i,v in ipairs(self.layers) do
+                    saveLayerdata[i]={
+                                    x=v.x,
+                                    y=v.y,
+                                    alpha=v.alpha,
+                                    tiled=v.tiled, 
+                                    imageName=v.imageName,
+                                    scroll=v.scroll, 
+                                    visible=v.visible,
+                                    reverse=v.reverse }
+                end
+                local saveData={
+                    scene={x=self.x, y=self.y, music=self.music, name=self.name, scale=self.scale},
+                    layers=saveLayerdata, objects=self.objects,
+                }
+                self.binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name .. ".scene", self.binser.serialize(saveData))
             end,
             setBackgroundImage=function(self, layer, imageID)
                 local img=self.sceneImages[imageID] 
@@ -448,6 +463,18 @@ return {
                 my=math.floor(my/scale.y)
                 return mx, my
             end,
+            updateSmallMsgBox=function(self)
+                local font=love.graphics.getFont()
+                local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.5), ((love.graphics.getHeight()/self.editorScale.y)*0.2)
+                local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
+
+                if self:updateTextButton("okay", x+(w/2)-((font:getWidth("okay")/2)+8), y+32) then 
+                    self.cooldown=1.0
+                    self.smallMessageBox=false
+                    self.editorState=self.oldState
+                    self.oldState=nil
+                end
+            end,
             drawSmallMsgBox=function(self)
                 love.graphics.setColor(0, 0, 0, 0.8)
                 love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
@@ -460,6 +487,12 @@ return {
                     love.graphics.print("-name for new scene-", x+(w/2)-(font:getWidth("-name for new scene-")/2), y+5)
                     --textbox. 
                     --okay button.
+                end
+                if self.editorState=="save scene" then
+                    local font=love.graphics.getFont()
+                    love.graphics.print("saved to " .. self.name .. ".scene ", x+(w/2)-(font:getWidth("saved to " .. self.name .. ".sceme ")/2), y+13)
+                    --okay button.
+                    self:drawTextButton("okay", x+(w/2)-((font:getWidth("okay")/2)+8), y+32)
                 end
             end,
             updateMsgBox=function(self)
@@ -1102,6 +1135,15 @@ return {
                     self.editorState="new scene"
                     self.smallMessageBox=true
                 end
+                if self:updateTextButton("load", x, 47) then
+
+                end
+                if self:updateTextButton("save", x, 68) then
+                    self:save()
+                    self.oldState=self.editorState
+                    self.editorState="save scene"
+                    self.smallMessageBox=true
+                end
 
                 x=(love.graphics.getWidth()/self.editorScale.x)-45
 
@@ -1295,7 +1337,7 @@ return {
                     local mx, my=self:scaleMousePosition(true)
 
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
-                    if not self.messageBox then
+                    if not self.messageBox and not self.smallMessageBox then
                                         --move layer if that's the tool
                                         if self.editState=="move layer" and love.mouse.isDown(1) then
                                             local mx, my=self:scaleMousePosition(false)
@@ -1375,6 +1417,9 @@ return {
                             end
                             if self.editorState=="select music" then
                                 self:updateMsgBox()
+                            end
+                            if self.editorState=="save scene" then
+                               self:updateSmallMsgBox()
                             end
                         end
             end,
