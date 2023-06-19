@@ -384,6 +384,7 @@ return {
                     move.x=move.x*-1
                     move.y=move.y*-1
                 end
+
                 layer.x=layer.x+(move.x)
                 layer.y=layer.y+(move.y)
             end,
@@ -1171,6 +1172,9 @@ return {
                 self.topMenuSize=148/self.editorScale.y
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
+
+                local layerPosText="layer offset: x:" .. (self.layers[self.activeLayer].x-self.x) .. " y:" .. (self.layers[self.activeLayer].y-self.y)
+                love.graphics.print(layerPosText, (((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth(layerPosText)/2)), 20)
 
                 local totalText="layer: " .. self.activeLayer .. " of " .. #self.layers
                 love.graphics.print(totalText, 8, 20)                
