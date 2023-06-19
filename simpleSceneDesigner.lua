@@ -96,9 +96,12 @@ return {
                 --preload scene images from scene folder.
                 local files = love.filesystem.getDirectoryItems(self.directories.layers)
                 self.sceneImages={}
+                self.imageLookup={}
                 for i,file in ipairs(files) do
                     if string.find(file, ".png") then
-                        self.sceneImages[#self.sceneImages+1]={name=file, image=love.graphics.newImage(self.directories.layers .. "/" .. file)}
+                        local id=#self.sceneImages+1
+                        self.sceneImages[id]={name=file, image=love.graphics.newImage(self.directories.layers .. "/" .. file)}
+                        self.imageLookup[file]=id
                     end
                 end
 
@@ -173,10 +176,11 @@ return {
                 --add scene info here as well, like name, x, y, width, height, etc.
                 binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name, binser.serialize({layers=self.layers, objects=self.objects}))
             end,
-            setBackgroundImage=function(self, layer, file, image)
-                self.layers[layer].imageName=file
-                self.layers[layer].image=image
-                self.layers[layer].canvas=love.graphics.newCanvas(image:getWidth(), image:getHeight())
+            setBackgroundImage=function(self, layer, imageID)
+                local img=self.sceneImages[imageID] 
+                self.layers[layer].imageName=img.file
+                self.layers[layer].image=imageID
+                self.layers[layer].canvas=love.graphics.newCanvas(img.image:getWidth(), img.image:getHeight())
             end,
             addLayer=function(self, data)
                 if data.scroll==nil then
@@ -197,8 +201,7 @@ return {
                 data.id=#self.layers+1
                 self.layers[data.id]=data
                 if data.image then
-                    local image=love.graphics.newImage(self.directories.layers .. data.image)
-                    self:setBackgroundImage(data.id, self.directories.layers .. data.image, image) 
+                    self.setBackgroundImage(data.id, self.imageLookup[data.image])
                 end
             end,
             addObject=function(self, data)
@@ -336,7 +339,7 @@ return {
 
 
                         if layer.image~=nil then
-                                love.graphics.draw(layer.image, 0, 0)
+                                love.graphics.draw(self.sceneImages[layer.image].image, 0, 0)
                         end
                         --draw the grid if in editor and grid is set.
                         if self.editing then
@@ -682,7 +685,7 @@ return {
                         col=1 
                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                             self.cooldown=1.0
-                            self:setBackgroundImage(self.activeLayer, file.name, self.sceneImages[i].image)
+                            self:setBackgroundImage(self.activeLayer, i)
                             self.messageBox=false
                             self.editorState=self.oldState
                             self.oldState=nil
@@ -1173,7 +1176,7 @@ return {
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
-                local layerPosText="layer offset: x:" .. (self.layers[self.activeLayer].x-self.x) .. " y:" .. (self.layers[self.activeLayer].y-self.y)
+                local layerPosText="layer offset: x:" .. math.floor(self.layers[self.activeLayer].x-self.x) .. " y:" .. math.floor(self.layers[self.activeLayer].y-self.y)
                 love.graphics.print(layerPosText, (((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth(layerPosText)/2)), 20)
 
                 local totalText="layer: " .. self.activeLayer .. " of " .. #self.layers
