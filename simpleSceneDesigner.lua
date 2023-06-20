@@ -165,6 +165,9 @@ return {
                 for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
             end,
             load=function(self, name)
+                --this needs to change, a lot. For loading layers, for loading objects, for loading scenes/etc
+                --also, need to add a selection window that runs through the screenshots in save folder,
+                --and uses that to list the loadable scenes you can click on. When clicked on, it loads the binser file.
                 self:clean()
                 local data, len=self.binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
                 --this needs to be done differently for layers because of images
@@ -368,7 +371,7 @@ return {
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
                         if layer.tiled==true and layer.image~=nil then
                                 layer.canvas:setWrap("repeat", "repeat")
-                                local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, love.graphics.getWidth(), love.graphics.getHeight(), layer.image:getWidth(), layer.image:getHeight())	
+                                local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, love.graphics.getWidth(), love.graphics.getHeight(), self.sceneImages[layer.image].image:getWidth(), self.sceneImages[layer.image].image:getHeight())	
                                 love.graphics.draw(layer.canvas, quad, 0, 0, 0, self.scale.x, self.scale.y)
                         else
                             love.graphics.draw(layer.canvas, (layer.x*self.scale.x), (layer.y*self.scale.y), 0, self.scale.x, self.scale.y)
@@ -869,14 +872,18 @@ return {
                 love.graphics.clear()
 
                 self:drawTopMenu()
-
-                if self.messageBox==true then
-                    self:drawMsgBox()
-                end
-                if self.smallMessageBox==true then
-                    self:drawSmallMsgBox()
-                end
-
+                    if self.messageBox==true then
+                        self:drawMsgBox()
+                    end
+                    if self.smallMessageBox==true then
+                        if self.editorState=="save scene"  then
+                            if self.cooldown==0.0 then
+                                self:drawSmallMsgBox()
+                            end
+                        else
+                            self:drawSmallMsgBox()
+                        end
+                    end
                 love.graphics.setCanvas()
             end,
             drawTab=function(self, name, x, y)
@@ -890,7 +897,6 @@ return {
                 end
                 --change state if a new tab is clicked on.
                 if self:mouseCollide({x=x, y=y, width=font:getWidth(name)+2, height=font:getHeight()+2}, true) and self.editorState~=name then
-                    --love.graphics.setColor(238/255, 241/255, 65/255, 1)
                     if love.mouse.isDown(1) and self.cooldown==0.0 then
                         self.cooldown=1.0
                         self.editorState=name
@@ -1139,10 +1145,12 @@ return {
 
                 end
                 if self:updateTextButton("save", x, 68) then
+                    love.graphics.captureScreenshot(self.name .. ".png")
                     self:save()
                     self.oldState=self.editorState
                     self.editorState="save scene"
                     self.smallMessageBox=true
+                    self.cooldown=3.0
                 end
 
                 x=(love.graphics.getWidth()/self.editorScale.x)-45
