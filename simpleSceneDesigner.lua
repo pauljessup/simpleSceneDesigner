@@ -48,6 +48,8 @@ return {
             textEditing=false,
             vars={},
             zsort={},
+            saveImages={},
+            saveLookup={},
             cooldown=0.0, --so mousepresses don't repeat a ton.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
@@ -92,6 +94,12 @@ return {
                                     pause=love.graphics.newImage(self.directories.editor .. "/pause-button.png"),
                                     musicNote=love.graphics.newImage(self.directories.editor .. "/musicnote.png"),
                 } 
+                local t=(self.topMenuSize+30)*self.editorScale.y
+                self.buttonQuad=love.graphics.newQuad(0, t, love.graphics.getWidth()-t, love.graphics.getHeight()-t, love.graphics.getWidth(), love.graphics.getHeight())
+
+                --preload screenshots of saved scenes from save folder
+                self:loadSaveImages()
+
 
                 --preload scene images from scene folder.
                 local files = love.filesystem.getDirectoryItems(self.directories.layers)
@@ -99,9 +107,13 @@ return {
                 self.imageLookup={}
                 for i,file in ipairs(files) do
                     if string.find(file, ".png") then
-                        local id=#self.sceneImages+1
-                        self.sceneImages[id]={name=file, image=love.graphics.newImage(self.directories.layers .. "/" .. file)}
-                        self.imageLookup[file]=id
+                        --make sure it's not a save file screenshot.
+                        if self.saveLookup[file]==nil then
+                            local id=#self.sceneImages+1
+                            --the name is going to be the name of the scene file, so we strip .png for the name, but keep it for the image.
+                            self.sceneImages[id]={name=file, image=love.graphics.newImage(self.directories.layers .. "/" .. file)}
+                            self.imageLookup[file]=id
+                        end
                     end
                 end
 
@@ -446,6 +458,7 @@ return {
 ------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
             startEditing=function(self) self.editing=true end,
             endEditing=function(self) self.editing=true end,
+
             addObjectType=function(self, type)
                 if type.image~=nil then 
                     type.imageName=type.image
@@ -465,6 +478,23 @@ return {
                 mx=math.floor(mx/scale.x)
                 my=math.floor(my/scale.y)
                 return mx, my
+            end,
+            loadSaveImages=function(self)
+                --clear them out--
+                for i=#self.saveImages, -1 do self.images[i]=nil end
+                for i=#self.saveLookup, -1 do self.images[i]=nil end
+                self.saveImages={}
+                self.saveLookup={}
+
+                files = love.filesystem.getDirectoryItems(self.directories.scenes)
+                for i,file in ipairs(files) do
+                    if string.find(file, ".scene") then
+                        local id=#self.saveImages+1
+                        file=file:match("(.+)%..+$")
+                        self.saveImages[id]={name=file .. ".scene", image=love.graphics.newImage(file .. ".png")}
+                        self.saveLookup[file .. ".png"]=id
+                    end      
+                end
             end,
             updateSmallMsgBox=function(self)
                 local font=love.graphics.getFont()
@@ -501,6 +531,9 @@ return {
             updateMsgBox=function(self)
                 local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.8), ((love.graphics.getHeight()/self.editorScale.y)*0.8)
                 local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
+                if self.editorState=="select save" then
+                    self:updateSaveSelect({x=x, y=y, w=w, h=h})
+                end
                 if self.editorState=="select image" then
                     self:updateImageSelect({x=x, y=y, w=w, h=h})
                 end
@@ -517,6 +550,9 @@ return {
                 self:drawWindow({x=x, y=y, w=w, h=h})
                 if self.editorState=="select image" then
                     self:drawImageSelect({x=x, y=y, w=w, h=h})
+                end
+                if self.editorState=="select save" then
+                    self:drawSaveSelect({x=x, y=y, w=w, h=h})
                 end
                 if self.editorState=="select music" then
                     self:drawMusicSelect({x=x, y=y, w=w, h=h})
@@ -648,6 +684,104 @@ return {
                 
             end,
 
+            updateSaveSelect=function(self, window)
+                if self.selectPage==nil then self.selectPage=1 end
+                local endPage=self.selectPage+5
+                if endPage>#self.saveImages then endPage=#self.saveImages end
+            
+                local font=love.graphics.getFont()
+                local cx, cy=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10))
+                local button={w=(window.w+15)/4, h=(window.h+15)/4}
+                local ox=x
+
+                
+                if self:updateTextButton("CANCEL", cx, cy) then 
+                    self.cooldown=1.0
+                    self.messageBox=false
+                    self.editorState=self.oldState
+                    self.oldState=nil
+                    self.selectPage=1
+                end
+            
+            
+                --left arrow
+                if self.selectPage>1 then
+                    love.graphics.draw(self.guiImages.arrow, window.x+10, window.y+(window.h/2), math.rad(-90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                    if self:mouseCollide({x=window.x+10, y=window.y+(window.h/2)-8, height=32, width=32}, true)  and self.cooldown==0.0 and love.mouse.isDown(1) then
+                        self.cooldown=1.0
+                        self.selectPage=self.selectPage-6
+                        if self.selectPage<1 then self.selectPage=1 end
+                    end
+                end
+                --right arrow
+                if self.selectPage<(#self.saveImages-6) then
+                    love.graphics.draw(self.guiImages.arrow, window.x+(window.w-12), window.y+(window.h/2), math.rad(90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                    if self:mouseCollide({x=window.x+(window.w-12), y=window.y+(window.h/2)-8, height=32, width=32}, true)  and self.cooldown==0.0 and love.mouse.isDown(1) then
+                        self.cooldown=1.0
+                        self.selectPage=self.selectPage+6
+                    end
+                end
+            
+            end,
+            
+            drawSaveSelect=function(self, window)
+                local font=love.graphics.getFont()
+                local title="-select scene-"
+                local button={w=(window.w+15)/4, h=(window.h+15)/4}
+                local y,x=window.y+font:getHeight(), (window.x+((window.w/2)-((button.w*3)/2)))-10
+                local ox=x
+                
+                love.graphics.print(title, window.x+((window.w/2)-(font:getWidth(title)/2)), y)
+            
+                y=y+(font:getHeight()*2)
+            
+                if self.selectPage==nil then self.selectPage=1 end
+                local endPage=self.selectPage+5
+                
+            
+                if endPage>#self.saveImages then endPage=#self.saveImages end
+            
+                local cx, cy=window.x+((window.w/2)-((font:getWidth("CANCEL")+4)/2)), window.y+(window.h-(font:getHeight()+10))                
+                self:drawTextButton("CANCEL", cx, cy)
+                
+                
+                if self.selectPage>1 then
+                    love.graphics.draw(self.guiImages.arrow, window.x+10, window.y+(window.h/2), math.rad(-90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                end
+                --right arrow
+                if self.selectPage<(#self.saveImages-6) then
+                    love.graphics.draw(self.guiImages.arrow, window.x+(window.w-12), window.y+(window.h/2), math.rad(90), 1, 1, self.guiImages.arrow:getWidth()/2, self.guiImages.arrow:getHeight()/2)
+                end
+            
+                for i=self.selectPage, endPage do
+                    local file=self.saveImages[i]
+                    local scale={x=button.w/file.image:getWidth(), y=button.h/(file.image:getHeight()-(self.topMenuSize*self.editorScale.y))}
+                    local col=0.5
+                    
+                    if self:mouseCollide({x=x, y=y, width=button.w, height=button.h}, true) then 
+                        col=1 
+                        if love.mouse.isDown(1) and self.cooldown==0.0 then
+                            self.cooldown=1.0
+                            --self:load(file.name)
+                            self.messageBox=false
+                            self.editorState=self.oldState
+                            self.oldState=nil
+                            self.selectPage=nil
+                        end
+                    end
+                    love.graphics.setColor(col, col, col, 1)
+            
+                    love.graphics.draw(file.image, self.buttonQuad, x+8, y, 0, scale.x, scale.y)
+                    love.graphics.print(file.name, x+((button.w/2)-(font:getWidth(file.name)/2)), y+button.h)
+                    x=x+button.w+5
+                    if i%3==0 then y=y+button.h+20 x=ox end
+                end
+            
+                love.graphics.setColor(1, 1, 1, 1)
+            
+            end,
+            
+            
             updateImageSelect=function(self, window)
                 if self.selectPage==nil then self.selectPage=1 end
                 local endPage=self.selectPage+5
@@ -1142,7 +1276,10 @@ return {
                     self.smallMessageBox=true
                 end
                 if self:updateTextButton("load", x, 47) then
-
+                    self:loadSaveImages()
+                    self.oldState=self.editorState
+                    self.editorState="select save"
+                    self.messageBox=true
                 end
                 if self:updateTextButton("save", x, 68) then
                     love.graphics.captureScreenshot(self.name .. ".png")
@@ -1308,7 +1445,6 @@ return {
                 end
 
                 local total=self.objPageAt+pgTotal
-                --error(pgTotal)
                 if total>=#self.editorObject then total=#self.editorObject end
 
                 for i=self.objPageAt, total do
@@ -1420,6 +1556,9 @@ return {
                                             self:updateSceneMenu()
                                         end
                         else
+                            if self.editorState=="select save" then
+                                self:updateMsgBox()
+                            end
                             if self.editorState=="select image" then
                                 self:updateMsgBox()
                             end
