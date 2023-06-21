@@ -125,6 +125,17 @@ return {
                     end
                 end
                 self.canvas=love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight())
+
+                self.customFunc={}
+                if info.functions~=nil then
+                    info=info.functions 
+                    if info.startGame~=nil then info.startGame(self) end
+                    if info.init~=nil then self.customFunc.init=info.init end
+                    if info.draw~=nil then self.customFunc.draw=info.draw end
+                    if info.update~=nil then self.customFunc.update=info.update end
+                    --layer functions, with similar update/etc. called per layer.
+                    if info.layers~=nil then self.custom.layers=info.layers end
+                end
            end,
            setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
@@ -167,12 +178,8 @@ return {
                 if vars.y==nil then vars.y=0 end
                 if vars.gridSize~=nil then self.gridSize=vars.gridSize else self.gridSize=8 end
 
-                self.vars=vars.vars
                 --first blank layer--
                 simpleScene:addLayer({x=0, y=0, type="basic"})
-                if vars.init~=nil then vars.init(self) end
-                if var.draw~=nil then self.customFunc.draw=vars.draw end
-                if var.update~=nil then self.customFunc.update=vars.update end
             end,
             clean=function(self)
                 self.useGrid=false
@@ -180,10 +187,6 @@ return {
                 self.scale={x=1, y=1}
                 for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
                 for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
-                if self.customFunc.init~=nil then self.customFunc.init=nil end 
-                if self.customFunc.draw~=nil then self.customFunc.draw=nil end 
-                if self.customFunc.update~=nil then self.customFunc.update=nil end
-                self.customFunc={}
             end,
             load=function(self, name)
                 --this needs to change, a lot. For loading layers, for loading objects, for loading scenes/etc
@@ -259,7 +262,6 @@ return {
 
             update=function(self, dt)
                 if not self.textEditing then textBuffer="" end
-                if self.customFunc.update~=nil then self.customFunc:update(dt) end
 
                 if self.editing==true then
                     self:updateEditor(dt)
@@ -267,6 +269,7 @@ return {
 
                 for i=1, #self.layers do
                     self:updateLayer(i, dt)
+                    if self.customFunc.layers~=nil and self.customFunc.layers.update~=nil then self.customFunc.layers.update(self, self.layers[i], dt) end
                 end
 
                 for ob, object in ipairs(self.objects) do 
@@ -279,6 +282,9 @@ return {
                 for i,v in ipairs(self.objects) do
                     self.zsort[#self.zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
                 end
+
+                --run custom functions.
+                if self.customFunc.update~=nil then self.customFunc.update(self, dt) end
 
                 table.sort(self.zsort, drawSort)
             end,
@@ -432,6 +438,7 @@ return {
 
                 for il,layer in ipairs(self.layers) do 
                         self:drawLayer(layer)
+                        if self.customFunc.layers~=nil and self.customFunc.layers.draw~=nil then self.customFunc.layers.draw(self, layer) end
                 end
 
                 if self.editing==true then 
@@ -450,7 +457,7 @@ return {
                     self:drawEditor() 
                     love.graphics.draw(self.canvas, 0, 0, 0, self.editorScale.x, self.editorScale.y)
                 end
-                if self.customFunc.draw~=nil then self.customFunc:draw(dt) end
+                if self.customFunc.draw~=nil then self.customFunc.draw(self) end
             end,
 
 ------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
