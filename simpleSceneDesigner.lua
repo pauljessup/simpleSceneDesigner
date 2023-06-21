@@ -46,7 +46,6 @@ return {
             editorObject={},
             topMenuSize=135,
             textEditing=false,
-            vars={},
             zsort={},
             saveImages={},
             saveLookup={},
@@ -171,10 +170,20 @@ return {
                 self.vars=vars.vars
                 --first blank layer--
                 simpleScene:addLayer({x=0, y=0, type="basic"})
+                if vars.init~=nil then vars.init(self) end
+                if var.draw~=nil then self.customFunc.draw=vars.draw end
+                if var.update~=nil then self.customFunc.update=vars.update end
             end,
             clean=function(self)
+                self.useGrid=false
+                self.activeLayer=1
+                self.scale={x=1, y=1}
                 for i=#self.layers, -1 do self.layers[i]=nil end self.layers={}
                 for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
+                if self.customFunc.init~=nil then self.customFunc.init=nil end 
+                if self.customFunc.draw~=nil then self.customFunc.draw=nil end 
+                if self.customFunc.update~=nil then self.customFunc.update=nil end
+                self.customFunc={}
             end,
             load=function(self, name)
                 --this needs to change, a lot. For loading layers, for loading objects, for loading scenes/etc
@@ -248,14 +257,9 @@ return {
                 self.objects[data.id]=data
             end,
 
-            update=function(self, customFunc, dt)
+            update=function(self, dt)
                 if not self.textEditing then textBuffer="" end
-
-                if type(customFunc)=="number" then 
-                    dt=customFunc
-                else
-                    customFunc(self, dt)
-                end
+                if self.customFunc.update~=nil then self.customFunc:update(dt) end
 
                 if self.editing==true then
                     self:updateEditor(dt)
@@ -421,11 +425,7 @@ return {
                 layer.x=layer.x+(move.x)
                 layer.y=layer.y+(move.y)
             end,
-            draw=function(self, customFunc, x, y)
-                if type(customFunc)=="number" then 
-                    x=customFunc
-                    y=x
-                end
+            draw=function(self, x, y)
                 if x==nil then x=self.x end
                 if y==nil then y=self.y end
 
@@ -450,9 +450,7 @@ return {
                     self:drawEditor() 
                     love.graphics.draw(self.canvas, 0, 0, 0, self.editorScale.x, self.editorScale.y)
                 end
-                if type(customFunc)=="function" then
-                    customFunc(self, x, y)
-                end
+                if self.customFunc.draw~=nil then self.customFunc:draw(dt) end
             end,
 
 ------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
