@@ -217,6 +217,7 @@ return {
                     saveLayerdata[i]={
                                     x=v.x,
                                     y=v.y,
+                                    scale=scale,
                                     alpha=v.alpha,
                                     tiled=v.tiled, 
                                     image=image,
@@ -275,7 +276,17 @@ return {
                 --if an init function is set in the object's template, use it.
                 if self.objectTypes[data.type].init then self.objectTypes[data.type]:init(self.objects[data.id], self) end
             end,
-
+            deleteLayer=function(self, layer)
+                table.remove(self.layers, layer)
+                if layer==self.activeLayer then self.activeLayer=self.activeLayer-1 end
+                --delete all objects on layer.
+                for i,v in ipairs(self.objects) do
+                    if v.layer==layer then self:deleteObject(i) end
+                end
+            end,
+            deleteObject=function(self, objid)
+                table.remove(self.objects, objid)
+            end,
             update=function(self, dt)
                 if not self.textEditing then textBuffer="" end
 
@@ -963,7 +974,7 @@ return {
                                 end
                         end
                         if self.dragNDrop~=nil and self.editState=="delete" then
-                            table.remove(self.objects, self.dragNDrop)
+                            self:deleteObject(self.dragNDrop)
                             self.dragNDrop=nil
                         end
                         
@@ -1181,6 +1192,11 @@ return {
 
                         local lineup=font:getWidth("reverse")-font:getWidth("visible")
                         self.layers[self.activeLayer].reverse=self:updateCheckbox("reverse ", x-lineup, y+36, self.layers[self.activeLayer].reverse)
+                        if self.activeLayer~=1 then 
+                            if self:updateTextButton("delete layer", x-lineup, y+58) then
+                                self:deleteLayer(self.activeLayer)
+                            end
+                        end 
             end,
             drawButton=function(self, image, x, y, lighten, tooltip)
                 if lighten then love.graphics.setColor(1, 1, 1, 1) else love.graphics.setColor(0.5, 0.5, 0.5, 1) end
