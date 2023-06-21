@@ -409,8 +409,8 @@ return {
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
                         if layer.tiled==true and layer.image~=nil then
                                 layer.canvas:setWrap("repeat", "repeat")
-                                local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, love.graphics.getWidth(), love.graphics.getHeight(), self.sceneImages[layer.image].image:getWidth(), self.sceneImages[layer.image].image:getHeight())	
-                                love.graphics.draw(layer.canvas, quad, 0, 0, 0, self.scale.x+layer.scale, self.scale.y+layer.scale)
+                                local quad = love.graphics.newQuad(-layer.x*(self.scale.x*layer.scale), -layer.y*(self.scale.y*layer.scale), love.graphics.getWidth(), love.graphics.getHeight(), self.sceneImages[layer.image].image:getWidth(), self.sceneImages[layer.image].image:getHeight())	
+                                love.graphics.draw(layer.canvas, quad, 0, 0, 0, (self.scale.x*layer.scale), (self.scale.y*layer.scale))
                         else
                             love.graphics.draw(layer.canvas, (layer.x*(self.scale.x*layer.scale)), (layer.y*(self.scale.y*layer.scale)), 0, self.scale.x*layer.scale, self.scale.y*layer.scale)
                         end
@@ -493,7 +493,8 @@ return {
             end,
 
             scaleMousePosition=function(self, editor)
-                local scale={x=self.scale.x, y=self.scale.y}
+                local l=self.layers[self.activeLayer]
+                local scale={x=(self.scale.x*l.scale), y=(self.scale.y*l.scale)}
                 if editor then scale.x=self.editorScale.x scale.y=self.editorScale.y  end
                 local mx, my = love.mouse.getPosition()
                 mx=math.floor(mx/scale.x)
@@ -1381,7 +1382,7 @@ return {
 
             end,
             drawLayerMenu=function(self)
-                self.topMenuSize=172/self.editorScale.y
+                self.topMenuSize=200/self.editorScale.y
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
@@ -1421,6 +1422,7 @@ return {
                 self:drawCheckbox("visible ", x, y+24, self.layers[self.activeLayer].visible)
                 local lineup=font:getWidth("reverse")-font:getWidth("visible")
                 self:drawCheckbox("reverse ", x-lineup, y+36, self.layers[self.activeLayer].reverse)
+                if self.activeLayer~=1 then self:drawTextButton("delete layer", x-lineup, y+58) end --can't delete base layer.
             end,
             --this lists the object types and allows you to select them before dropping them on the map.
             drawObjectMenu=function(self)
