@@ -263,6 +263,8 @@ return {
                 data.id=#self.objects+1
                 data.scene=self.name
                 self.objects[data.id]=data
+                --if an init function is set in the object's template, use it.
+                if self.objectTypes[data.type].init then self.objectTypes[data.type].init(self.objects[data.id]) end
             end,
 
             update=function(self, dt)
