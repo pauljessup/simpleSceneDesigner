@@ -1,3 +1,11 @@
+--[[
+        THINGS I NEED TO ADD
+        -delete layer
+        -scale layer
+]]
+
+
+
 local utf8 = require("utf8")
 
 local folderOfThisFile = (...):match("(.-)[^%.]+$")
@@ -237,6 +245,7 @@ return {
                     data.scroll.constant.x=false
                     data.scroll.constant.y=false
                 end
+                if data.scale==nil then data.scale=1 end
                 if data.reverse==nil then data.reverse=false end 
 
                 if data.alpha==nil then data.alpha=1.0 end 
@@ -401,9 +410,9 @@ return {
                         if layer.tiled==true and layer.image~=nil then
                                 layer.canvas:setWrap("repeat", "repeat")
                                 local quad = love.graphics.newQuad(-layer.x*self.scale.x, -layer.y*self.scale.y, love.graphics.getWidth(), love.graphics.getHeight(), self.sceneImages[layer.image].image:getWidth(), self.sceneImages[layer.image].image:getHeight())	
-                                love.graphics.draw(layer.canvas, quad, 0, 0, 0, self.scale.x, self.scale.y)
+                                love.graphics.draw(layer.canvas, quad, 0, 0, 0, self.scale.x+layer.scale, self.scale.y+layer.scale)
                         else
-                            love.graphics.draw(layer.canvas, (layer.x*self.scale.x), (layer.y*self.scale.y), 0, self.scale.x, self.scale.y)
+                            love.graphics.draw(layer.canvas, (layer.x*(self.scale.x*layer.scale)), (layer.y*(self.scale.y*layer.scale)), 0, self.scale.x*layer.scale, self.scale.y*layer.scale)
                         end
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
                 end
@@ -1132,7 +1141,8 @@ return {
                         self.layers[self.activeLayer].scroll.constant.x=self:updateCheckbox(" x",  x+font:getWidth("constant scroll "), y, self.layers[self.activeLayer].scroll.constant.x)
                         self.layers[self.activeLayer].scroll.constant.y=self:updateCheckbox(" y",  x+font:getWidth("constant scroll ")+font:getWidth(" x:")+self.guiImages.checkYes:getWidth()+2, y, self.layers[self.activeLayer].scroll.constant.y)
 
-                    
+                        self.layers[self.activeLayer].scale=self:updateNumberBox("scale", x, y+font:getHeight()+4, self.layers[self.activeLayer].scale)
+
                         x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
                         if self:mouseCollide({x=x, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
                                 self.cooldown=1.0
@@ -1371,7 +1381,7 @@ return {
 
             end,
             drawLayerMenu=function(self)
-                self.topMenuSize=148/self.editorScale.y
+                self.topMenuSize=172/self.editorScale.y
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
@@ -1393,6 +1403,7 @@ return {
                 love.graphics.print("constant scroll ", x, y)
                 self:drawCheckbox(" x", x+font:getWidth("constant scroll "), y, self.layers[self.activeLayer].scroll.constant.x)
                 self:drawCheckbox(" y", x+font:getWidth("constant scroll ")+font:getWidth(" x:")+self.guiImages.checkYes:getWidth()+2, y, self.layers[self.activeLayer].scroll.constant.y)
+                self:numberBox("scale", x, y+font:getHeight()+4, self.layers[self.activeLayer].scale)
 
                 --draws an object menu for different tools, etc. Placing via grid (or not),
                 --deleting or moving instead of placing object
