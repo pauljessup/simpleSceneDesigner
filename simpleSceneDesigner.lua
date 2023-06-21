@@ -217,7 +217,7 @@ return {
                     saveLayerdata[i]={
                                     x=v.x,
                                     y=v.y,
-                                    scale=scale,
+                                    scale=v.scale,
                                     alpha=v.alpha,
                                     tiled=v.tiled, 
                                     image=image,
@@ -257,7 +257,7 @@ return {
                 data.canvas=love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight())
                 data.id=#self.layers+1
                 self.layers[data.id]=data
-                if data.image then
+                if data.image and self.imageLookup[data.image]~=nil then
                     self:setBackgroundImage(data.id, self.imageLookup[data.image])
                 end
             end,
@@ -405,7 +405,7 @@ return {
                         love.graphics.clear()
 
 
-                        if layer.image~=nil then
+                        if layer.image~=nil and self.sceneImages[layer.image]~=nil  then
                                 love.graphics.draw(self.sceneImages[layer.image].image, 0, 0)
                         end
                         --draw the grid if in editor and grid is set.
