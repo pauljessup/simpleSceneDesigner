@@ -166,10 +166,9 @@ return {
            setScale=function(self, scalex, scaley)
                 self.scale={x=scalex, y=scaley}
             end,
-            newScene=function(self, vars)
+            newScene=function(self, vars, loading)
                 self:clean()
                 self.name=vars.name
-                self.type=vars.type
                 if vars.x~=nil and vars.y~=nil then
                     self.x=vars.x
                     self.y=vars.y
@@ -177,9 +176,10 @@ return {
                 if vars.x==nil then vars.x=0 end
                 if vars.y==nil then vars.y=0 end
                 if vars.gridSize~=nil then self.gridSize=vars.gridSize else self.gridSize=8 end
-
+                if vars.scale~=nil then self.scale=vars.scale end
+                if vars.music~=nil then self.music=vars.music end
                 --first blank layer--
-                simpleScene:addLayer({x=0, y=0, type="basic"})
+                if not loading then simpleScene:addLayer({x=0, y=0}) end
             end,
             clean=function(self)
                 self.useGrid=false
@@ -192,22 +192,26 @@ return {
                 --this needs to change, a lot. For loading layers, for loading objects, for loading scenes/etc
                 --also, need to add a selection window that runs through the screenshots in save folder,
                 --and uses that to list the loadable scenes you can click on. When clicked on, it loads the binser file.
-                self:clean()
                 local data, len=self.binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
+                data=data[1]
                 --this needs to be done differently for layers because of images
-                self.layers=data.layers 
+                self:newScene(data.scene, true)
                 self.objects=data.objects
-                --make sure images are correct. Since ID's might be off if new images are added.
+                for i,v in ipairs(data.layers) do
+                    self:addLayer(v)
+                end
             end,
             save=function(self)
                 local saveLayerdata={}
                 for i,v in ipairs(self.layers) do
+                    local image=""
+                    if self.sceneImages[v.image]~=nil then image=self.sceneImages[v.image].name end
                     saveLayerdata[i]={
                                     x=v.x,
                                     y=v.y,
                                     alpha=v.alpha,
                                     tiled=v.tiled, 
-                                    imageName=v.imageName,
+                                    image=image,
                                     scroll=v.scroll, 
                                     visible=v.visible,
                                     reverse=v.reverse }
@@ -216,7 +220,8 @@ return {
                     scene={x=self.x, y=self.y, music=self.music, name=self.name, scale=self.scale},
                     layers=saveLayerdata, objects=self.objects,
                 }
-                self.binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name .. ".scene", self.binser.serialize(saveData))
+                
+                self.binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name .. ".scene", saveData)
             end,
             setBackgroundImage=function(self, layer, imageID)
                 local img=self.sceneImages[imageID] 
@@ -243,7 +248,7 @@ return {
                 data.id=#self.layers+1
                 self.layers[data.id]=data
                 if data.image then
-                    self.setBackgroundImage(data.id, self.imageLookup[data.image])
+                    self:setBackgroundImage(data.id, self.imageLookup[data.image])
                 end
             end,
             addObject=function(self, data)
@@ -767,7 +772,7 @@ return {
                         col=1 
                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                             self.cooldown=1.0
-                            --self:load(file.name)
+                            self:load(file.name)
                             self.messageBox=false
                             self.editorState=self.oldState
                             self.oldState=nil
