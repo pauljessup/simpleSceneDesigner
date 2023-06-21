@@ -264,7 +264,7 @@ return {
                 data.scene=self.name
                 self.objects[data.id]=data
                 --if an init function is set in the object's template, use it.
-                if self.objectTypes[data.type].init then self.objectTypes[data.type].init(self.objects[data.id]) end
+                if self.objectTypes[data.type].init then self.objectTypes[data.type]:init(self.objects[data.id], self) end
             end,
 
             update=function(self, dt)
@@ -281,7 +281,7 @@ return {
 
                 for ob, object in ipairs(self.objects) do 
                     local type=self.objectTypes[object.type]
-                    if type.update~=nil and self.editing==false then type:update(object, dt) end                    
+                    if type.update~=nil and self.editing==false then type:update(object, self, dt) end                    
                 end
                 --zsorting...
                 for i=#self.zsort, -1 do self.zsort=nil end 
