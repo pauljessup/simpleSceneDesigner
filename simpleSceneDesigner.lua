@@ -449,15 +449,17 @@ return {
             moveCamera=function(self, x, y)
                 --this should offset the camera from the center of the screen,
                 --and not the upper left hand corner.
-                x=x*-1
-                y=y*-1
-                self.x=self.x-x
-                self.y=self.y-y
-                for i,v in ipairs(self.layers) do
-                    local lx, ly=x, y 
-                    if v.scroll.constant.x==true then lx=0 end 
-                    if v.scroll.constant.y==true then ly=0 end
-                    self:moveLayer(i, lx, ly)
+                if self.cooldown==0.0 then
+                    x=x*-1
+                    y=y*-1
+                    self.x=self.x-x
+                    self.y=self.y-y
+                    for i,v in ipairs(self.layers) do
+                        local lx, ly=x, y 
+                        if v.scroll.constant.x==true then lx=0 end 
+                        if v.scroll.constant.y==true then ly=0 end
+                        self:moveLayer(i, lx, ly)
+                    end
                 end
             end,
 
