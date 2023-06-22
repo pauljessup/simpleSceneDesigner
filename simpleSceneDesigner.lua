@@ -370,6 +370,7 @@ return {
                     end
                 end
 
+                local l=self.layers[layer]
                 for i,v in ipairs(self.zsort) do
                     local object=self.objects[v.id]
                     if object.layer==layer then
@@ -380,7 +381,7 @@ return {
                             if type.draw~=nil then
                                     type:draw(object, self) 
                             elseif type.image~=nil then
-                                love.graphics.draw(type.image, object.x, object.y)
+                                love.graphics.draw(type.image, object.x-l.x, object.y-l.y)
                             end
                             if didlight and litId==i and self.editing==true then
                                 love.graphics.setColor(1, 1, 1, 1)
@@ -413,7 +414,6 @@ return {
                             end
                         end
                         self:drawObjects(layer.id) 
-
                         love.graphics.setCanvas()
 
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
@@ -1017,19 +1017,20 @@ return {
                 return x, y
             end,
             screenToLayer=function(self, layer, x, y)
-                local layer=self.layers[layer]
-                x=x/(self.scale.x*layer.scale)
-                y=y/(self.scale.y*layer.scale)
-                x=x-layer.x 
-                y=y-layer.y
+                local l=self.layers[layer]
+                local scale=self.scale.x*l.scale
+                local ox, oy=l.x*scale, l.y*scale
+                x=(x*scale)+ox
+                y=(y*scale)+oy
+
                 return x, y     
             end,
             layertoScreen=function(self, layer, x, y)
-                local layer=self.layers[layer]    
-                x=x+layer.x 
-                y=y+layer.y
-                x=x*(self.scale.x*layer.scale)
-                y=y*(self.scale.y*layer.scale)   
+                local l=self.layers[layer]
+                local scale=self.scale.x/l.scale
+                local ox, oy=l.x/scale, l.y/scale
+                x=(x/scale)+ox
+                y=(y/scale)+oy
                 return x, y
             end,
             drawEditor=function(self)
@@ -1560,8 +1561,8 @@ return {
                                                     end
                                                     --adjust based on layer offset and scene camera offset)
                                                     local layer=self.layers[self.activeLayer]
-                                                    local mx=mx-layer.x
-                                                    local my=my-layer.y
+                                                    --local mx=mx-layer.x
+                                                    --local my=my-layer.y
                                                     
                                                     self:addObject({type=type, layer=self.activeLayer, x=mx-(obj.width/2), y=my-(obj.height/2)})
                                                 end
