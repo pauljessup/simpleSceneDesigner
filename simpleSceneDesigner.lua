@@ -178,6 +178,7 @@ return {
                 if vars.gridSize~=nil then self.gridSize=vars.gridSize else self.gridSize=8 end
                 if vars.scale~=nil then self.scale=vars.scale end
                 if vars.music~=nil then self.music=vars.music end
+                if vars.activeLayer~=nil then self.activeLayer=vars.activeLayer end
                 --first blank layer--
                 if not loading then simpleScene:addLayer({x=0, y=0}) end
             end,
@@ -207,6 +208,7 @@ return {
                     local image=""
                     if self.sceneImages[v.image]~=nil then image=self.sceneImages[v.image].name end
                     saveLayerdata[i]={
+                                    activeLayer=self.activeLayer,
                                     x=v.x,
                                     y=v.y,
                                     scale=v.scale,
@@ -436,6 +438,8 @@ return {
             moveCamera=function(self, x, y)
                 --this should offset the camera from the center of the screen,
                 --and not the upper left hand corner.
+                x=x*-1
+                y=y*-1
                 self.x=self.x-x
                 self.y=self.y-y
                 for i,v in ipairs(self.layers) do
@@ -1400,8 +1404,8 @@ return {
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
-                local layerPosText="layer offset: x:" .. math.floor(self.layers[self.activeLayer].x-self.x) .. " y:" .. math.floor(self.layers[self.activeLayer].y-self.y)
-                love.graphics.print(layerPosText, (((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth(layerPosText)/2)), 20)
+                --local layerPosText="layer offset: x:" .. math.floor((self.layers[self.activeLayer].x/self.scale.x)-(self.x/self.scale.x)) .. " y:" .. math.floor((self.layers[self.activeLayer].y/self.scale.y)-(self.y/self.scale.y))
+                --love.graphics.print(layerPosText, (((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth(layerPosText)/2)), 20)
 
                 local totalText="layer: " .. self.activeLayer .. " of " .. #self.layers
                 love.graphics.print(totalText, 8, 20)                
@@ -1516,6 +1520,15 @@ return {
                 self:drawObjectMenu()
             end,
             updateEditor=function(self, dt)
+                    --keypress also move camera
+                    local move={x=0, y=0}
+                    if love.keyboard.isDown("up") then  move.y=move.y-1 end 
+                    if love.keyboard.isDown("down") then move.y=move.y+1 end 
+                    if love.keyboard.isDown("left") then move.x=move.x-1 end
+                    if love.keyboard.isDown("right") then move.x=move.x+1 end
+                    self:moveCamera(move.x, move.y)
+
+
                     self:mouseOverObject()
                     local mx, my=self:scaleMousePosition(true)
 
@@ -1537,7 +1550,7 @@ return {
                                         if self.editState=="move camera" and love.mouse.isDown(1) then
                                             local mx, my=self:scaleMousePosition(false)
                                             if self.last2==nil then self.last2={x=mx, y=my} end
-                                            self:moveCamera(mx-self.last2.x, my-self.last2.y)
+                                            self:moveCamera((mx-self.last2.x)*-1, (my-self.last2.y)*-1)
                                             self.last2.x=mx
                                             self.last2.y=my
                                         else
