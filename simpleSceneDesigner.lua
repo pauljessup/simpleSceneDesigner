@@ -169,16 +169,17 @@ return {
             newScene=function(self, vars, loading)
                 self:clean()
                 self.name=vars.name
-                if vars.x~=nil and vars.y~=nil then
-                    self.x=vars.x
-                    self.y=vars.y
-                end
                 if vars.x==nil then vars.x=0 end
                 if vars.y==nil then vars.y=0 end
+
+                self.x=vars.x
+                self.y=vars.y
+
                 if vars.gridSize~=nil then self.gridSize=vars.gridSize else self.gridSize=8 end
-                if vars.scale~=nil then self.scale=vars.scale end
-                if vars.music~=nil then self.music=vars.music end
-                if vars.activeLayer~=nil then self.activeLayer=vars.activeLayer end
+                if vars.scale~=nil then self.scale=vars.scale else self.scale={x=1, y=1} end
+
+                self.music=vars.music
+                if vars.activeLayer~=nil then self.activeLayer=vars.activeLayer else vars.activeLayer=1 end
                 --first blank layer--
                 if not loading then simpleScene:addLayer({x=0, y=0}) end
             end,
@@ -269,6 +270,16 @@ return {
                 self.objects[data.id]=data
                 --if an init function is set in the object's template, use it.
                 if self.objectTypes[data.type].init then self.objectTypes[data.type]:init(self.objects[data.id], self) end
+            end,
+            changeObjectLayer=function(self, object, newLayer)
+                if self.layers[newLayer]==nil then error("Tried to move object to layer #" .. newLayer ..",  but layer does not exist.") end
+                --if an ID is passed and not the actual object, get the actual object.
+                if type(object)=="number" then object=self.objects[object] end
+                --we convert old coords on old layer to screen coords
+                local x, y=self:layertoScreen(object.x, object.y, object.layer)
+                --now we convert the screen coords to the new layer coords
+                object.x, object.y=self:screenToLayer(x, y, newLayer)
+                object.layer=newlayer
             end,
             deleteLayer=function(self, layer)
                 table.remove(self.layers, layer)
@@ -449,6 +460,38 @@ return {
                     self:moveLayer(i, lx, ly)
                 end
             end,
+
+            sceneToScreen=function(self, x, y)
+                x=x+self.x
+                y=y+self.y
+                x=x*self.scale.x
+                y=y*self.scale.y
+                return x, y
+            end,
+            screenToScene=function(self, x, y)
+                x=x/self.scale.x
+                y=y/self.scale.y
+                x=x-self.x
+                y=y-self.y
+                return x, y
+            end,
+            screenToLayer=function(self, layer, x, y)
+                local l=self.layers[layer]
+                local scale=self.scale.x*l.scale
+                local ox, oy=l.x*scale, l.y*scale
+                x=(x*scale)+ox
+                y=(y*scale)+oy
+
+                return x, y     
+            end,
+            layertoScreen=function(self, layer, x, y)
+                local l=self.layers[layer]
+                local scale=self.scale.x/l.scale
+                local ox, oy=l.x/scale, l.y/scale
+                x=(x/scale)+ox
+                y=(y/scale)+oy
+                return x, y
+            end,
             moveLayer=function(self, layer, x, y)
                 local layer=self.layers[layer]
                 local move={x=layer.scroll.speed*x, y=layer.scroll.speed*y}
@@ -534,13 +577,62 @@ return {
                 local font=love.graphics.getFont()
                 local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.5), ((love.graphics.getHeight()/self.editorScale.y)*0.2)
                 local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
+                local textbox={x=x+20, y=(y+(font:getHeight()*2)-4)}
 
-                if self:updateTextButton("okay", x+(w/2)-((font:getWidth("okay")/2)+8), y+32) then 
-                    self.cooldown=1.0
-                    self.smallMessageBox=false
-                    self.editorState=self.oldState
-                    self.oldState=nil
+                if self.editorState=="save scene" then
+                        if self:updateTextButton("okay", x+(w/2)-((font:getWidth("okay")/2)+8), y+32) then 
+                            self.cooldown=1.0
+                            self.smallMessageBox=false
+                            self.editorState=self.oldState
+                            self.oldState=nil
+                        end
                 end
+                if self.editorState=="rename" then
+                    if self:updateTextButton("okay", textbox.x+10+font:getWidth("AAAAAAAAAAAAAAA"), textbox.y+2) then
+                        self.cooldown=1.0
+                        self.textEditing=false
+                        self.smallMessageBox=false
+                        self.editorState=self.oldState
+                        self.oldState=nil
+                    end
+                end
+                if self.editorState=="new scene" then
+                    if self:updateTextButton("okay", textbox.x+10+font:getWidth("AAAAAAAAAAAAAAA"), textbox.y+2) then
+                        self:newScene({name=textBuffer})
+                        self.cooldown=1.0
+                        self.textEditing=false
+                        self.smallMessageBox=false
+                        self.editorState=self.oldState
+                        self.oldState=nil
+                    end
+                end
+            end,
+            
+            inputTextBox=function(self, prompt, x, y, w, h)
+                if self.blinkCursor==nil then self.blinkCursor={show=true, time=2.0} end
+                if self.blinkCursor.time>0.0 then self.blinkCursor.time=self.blinkCursor.time-0.1 else self.blinkCursor.time=2.0 self.blinkCursor.show=not self.blinkCursor.show end 
+
+                local font=love.graphics.getFont()
+                local textbox={x=x+20, y=(y+(font:getHeight()*2)-4)}
+                love.graphics.print(prompt, x+(w/2)-(font:getWidth(prompt)/2), y+5)
+                self.textEditing=true
+                --textbox. 
+                local oldColor={}
+                oldColor[1], oldColor[2], oldColor[3], oldColor[4]=love.graphics.getColor()
+                local b, o=self.windowColors.background, self.windowColors.border
+
+                love.graphics.setColor(b[1], b[2], b[3], 1)
+                love.graphics.rectangle("fill", textbox.x, textbox.y, font:getWidth("AAAAAAAAAAAAAAA"), font:getHeight()+8)
+                love.graphics.setColor(oldColor[1], oldColor[2], oldColor[3], oldColor[4])
+                local cursor="|"
+                if not self.blinkCursor.show then cursor="" end 
+
+                love.graphics.print(textBuffer .. cursor, textbox.x+5, textbox.y+4)
+                --add okay button here.
+                self:drawTextButton("okay", textbox.x+10+font:getWidth("AAAAAAAAAAAAAAA"), textbox.y+2)
+
+                --if pressed, leave textbox.
+                return textBuffer
             end,
             drawSmallMsgBox=function(self)
                 love.graphics.setColor(0, 0, 0, 0.8)
@@ -549,11 +641,11 @@ return {
                 local w, h=((love.graphics.getWidth()/self.editorScale.x)*0.5), ((love.graphics.getHeight()/self.editorScale.y)*0.2)
                 local x, y=((love.graphics.getWidth()/self.editorScale.x)/2)-w/2, ((love.graphics.getHeight()/self.editorScale.y)/2)-h/2
                 self:drawWindow({x=x, y=y, w=w, h=h})
+                if self.editorState=="rename" then
+                    self.name=self:inputTextBox("-type new name for scene-", x, y, w, h)
+                end
                 if self.editorState=="new scene" then
-                    local font=love.graphics.getFont()
-                    love.graphics.print("-name for new scene-", x+(w/2)-(font:getWidth("-name for new scene-")/2), y+5)
-                    --textbox. 
-                    --okay button.
+                    self:inputTextBox("-type name for new scene-", x, y, w, h)
                 end
                 if self.editorState=="save scene" then
                     local font=love.graphics.getFont()
@@ -1005,37 +1097,6 @@ return {
                         end
                 end
             end,
-            sceneToScreen=function(self, x, y)
-                x=x+self.x
-                y=y+self.y
-                x=x*self.scale.x
-                y=y*self.scale.y
-                return x, y
-            end,
-            screenToScene=function(self, x, y)
-                x=x/self.scale.x
-                y=y/self.scale.y
-                x=x-self.x
-                y=y-self.y
-                return x, y
-            end,
-            screenToLayer=function(self, layer, x, y)
-                local l=self.layers[layer]
-                local scale=self.scale.x*l.scale
-                local ox, oy=l.x*scale, l.y*scale
-                x=(x*scale)+ox
-                y=(y*scale)+oy
-
-                return x, y     
-            end,
-            layertoScreen=function(self, layer, x, y)
-                local l=self.layers[layer]
-                local scale=self.scale.x/l.scale
-                local ox, oy=l.x/scale, l.y/scale
-                x=(x/scale)+ox
-                y=(y/scale)+oy
-                return x, y
-            end,
             drawEditor=function(self)
                 love.graphics.setCanvas(self.canvas)
                 love.graphics.clear()
@@ -1310,6 +1371,13 @@ return {
                 local center=(love.graphics.getWidth()/self.editorScale.x)/2
 
                 x=8
+                if self:updateTextButton(self.name, center-((font:getWidth("-" .. self.name .. "-")/2)+6), 20) then
+                    self.oldState=self.editorState
+                    self.editorState="rename"
+                    textBuffer=self.name
+                    self.smallMessageBox=true
+                end
+
                 if self:updateTextButton("new", x, 25) then
                     --make window say new created, with okay button.
                     self.oldState=self.editorState
@@ -1520,20 +1588,21 @@ return {
                 self:drawObjectMenu()
             end,
             updateEditor=function(self, dt)
-                    --keypress also move camera
-                    local move={x=0, y=0}
-                    if love.keyboard.isDown("up") then  move.y=move.y-1 end 
-                    if love.keyboard.isDown("down") then move.y=move.y+1 end 
-                    if love.keyboard.isDown("left") then move.x=move.x-1 end
-                    if love.keyboard.isDown("right") then move.x=move.x+1 end
-                    self:moveCamera(move.x, move.y)
-
-
-                    self:mouseOverObject()
-                    local mx, my=self:scaleMousePosition(true)
 
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
                     if not self.messageBox and not self.smallMessageBox then
+                                            --keypress also move camera
+                                        local move={x=0, y=0}
+                                        if love.keyboard.isDown("up") then  move.y=move.y-1 end 
+                                        if love.keyboard.isDown("down") then move.y=move.y+1 end 
+                                        if love.keyboard.isDown("left") then move.x=move.x-1 end
+                                        if love.keyboard.isDown("right") then move.x=move.x+1 end
+                                        self:moveCamera(move.x, move.y)
+
+
+                                        self:mouseOverObject()
+                                        local mx, my=self:scaleMousePosition(true)
+
                                         --move layer if that's the tool
                                         if self.editState=="move layer" and love.mouse.isDown(1) then
                                             local mx, my=self:scaleMousePosition(false)
@@ -1619,6 +1688,12 @@ return {
                             end
                             if self.editorState=="save scene" then
                                self:updateSmallMsgBox()
+                            end
+                            if self.editorState=="rename" then
+                                self:updateSmallMsgBox()
+                            end
+                            if self.editorState=="new scene" then
+                                self:updateSmallMsgBox()
                             end
                         end
             end,
