@@ -370,7 +370,6 @@ return {
                     end
                 end
 
-                local l=self.layers[layer]
                 for i,v in ipairs(self.zsort) do
                     local object=self.objects[v.id]
                     if object.layer==layer then
@@ -381,7 +380,7 @@ return {
                             if type.draw~=nil then
                                     type:draw(object, self) 
                             elseif type.image~=nil then
-                                love.graphics.draw(type.image, object.x-l.x, object.y-l.y)
+                                love.graphics.draw(type.image, object.x, object.y)
                             end
                             if didlight and litId==i and self.editing==true then
                                 love.graphics.setColor(1, 1, 1, 1)
@@ -1561,8 +1560,8 @@ return {
                                                     end
                                                     --adjust based on layer offset and scene camera offset)
                                                     local layer=self.layers[self.activeLayer]
-                                                    --local mx=mx-layer.x
-                                                    --local my=my-layer.y
+                                                    local mx=mx-layer.x
+                                                    local my=my-layer.y
                                                     
                                                     self:addObject({type=type, layer=self.activeLayer, x=mx-(obj.width/2), y=my-(obj.height/2)})
                                                 end
