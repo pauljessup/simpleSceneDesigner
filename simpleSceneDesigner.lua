@@ -1,11 +1,3 @@
---[[
-        THINGS I NEED TO ADD
-        -delete layer
-        -scale layer
-]]
-
-
-
 local utf8 = require("utf8")
 
 local folderOfThisFile = (...):match("(.-)[^%.]+$")
@@ -382,7 +374,7 @@ return {
                     local object=self.objects[v.id]
                     if object.layer==layer then
                             local type=self.objectTypes[object.type]
-                            if didlight and litId==i then
+                            if didlight and litId==i and self.editing==true then
                                     love.graphics.setColor(0.5, 0.5, 0.5, 1)
                             end
                             if type.draw~=nil then
@@ -390,7 +382,9 @@ return {
                             elseif type.image~=nil then
                                 love.graphics.draw(type.image, object.x, object.y)
                             end
-                            love.graphics.setColor(1, 1, 1, 1)
+                            if didlight and litId==i and self.editing==true then
+                                love.graphics.setColor(1, 1, 1, 1)
+                            end
                     end
                 end
             end,
@@ -406,7 +400,11 @@ return {
 
 
                         if layer.image~=nil and self.sceneImages[layer.image]~=nil  then
+                            if self.customFunc.layers~=nil and self.customFunc.layers.draw~=nil then 
+                                self.customFunc.layers.draw(self, layer, 0, 0) 
+                            else
                                 love.graphics.draw(self.sceneImages[layer.image].image, 0, 0)
+                            end
                         end
                         --draw the grid if in editor and grid is set.
                         if self.editing then
@@ -415,6 +413,7 @@ return {
                             end
                         end
                         self:drawObjects(layer.id) 
+
                         love.graphics.setCanvas()
 
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
@@ -465,7 +464,6 @@ return {
 
                 for il,layer in ipairs(self.layers) do 
                         self:drawLayer(layer)
-                        if self.customFunc.layers~=nil and self.customFunc.layers.draw~=nil then self.customFunc.layers.draw(self, layer) end
                 end
 
                 if self.editing==true then 
@@ -1020,8 +1018,8 @@ return {
             end,
             screenToLayer=function(self, layer, x, y)
                 local layer=self.layers[layer]
-                x=x/self.scale.x
-                y=y/self.scale.y       
+                x=x/(self.scale.x*layer.scale)
+                y=y/(self.scale.y*layer.scale)
                 x=x-layer.x 
                 y=y-layer.y
                 return x, y     
@@ -1030,8 +1028,8 @@ return {
                 local layer=self.layers[layer]    
                 x=x+layer.x 
                 y=y+layer.y
-                x=x*self.scale.x
-                y=y*self.scale.y   
+                x=x*(self.scale.x*layer.scale)
+                y=y*(self.scale.y*layer.scale)   
                 return x, y
             end,
             drawEditor=function(self)
