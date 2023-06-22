@@ -25,7 +25,7 @@ end
 
 
 return {
-            editState="move",
+            editState="move camera",
             useGrid=false,
             activeLayer=1,
             objPageAt=1,
