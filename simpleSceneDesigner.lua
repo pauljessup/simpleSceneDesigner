@@ -322,9 +322,13 @@ return {
             end,
             clampCameratoLayer=function(self, layer)
                 --clamps camera to a layer.
-                layer=self.layers[layer]
-                local b=self.sceneImages[layer.image].image
-                self.clamp={x=layer.x, y=layer.y, w=b:getWidth(), h=b:getHeight()}
+                if self.layers[layer]~=nil then
+                    layer=self.layers[layer]
+                    if layer.canvas~=nil then
+                        local edgex, edgey=layer.canvas:getWidth()-love.graphics.getWidth(), layer.canvas:getHeight()-love.graphics.getHeight()
+                        self.clamp={x=0, y=0, w=edgex, h=edgey}
+                    end
+                end
             end,
             --forces the camera to center on an object.
             centerObject=function(self, objectid)
@@ -461,13 +465,19 @@ return {
             end,
             --relative movement.
             moveCamera=function(self, x, y)
-                --this should offset the camera from the center of the screen,
-                --and not the upper left hand corner.
                 if self.cooldown==0.0 then
                     x=x*-1
                     y=y*-1
                     self.x=self.x-x
                     self.y=self.y-y
+
+                    if self.clamp~=nil then 
+                        if self.x<self.clamp.x then self.x=self.clamp.x x=0 end
+                        if self.y<self.clamp.y then self.y=self.clamp.y y=0 end
+                        if self.x>self.clamp.w then self.x=self.clamp.w x=0 end
+                        if self.y>self.clamp.h then self.y=self.clamp.h y=0 end
+                    end
+
                     for i,v in ipairs(self.layers) do
                         local lx, ly=x, y 
                         if v.scroll.constant.x==true then lx=0 end 
@@ -1604,7 +1614,7 @@ return {
                 self:drawObjectMenu()
             end,
             updateEditor=function(self, dt)
-
+                    self:clampCameratoLayer(self.activeLayer)
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
                     if not self.messageBox and not self.smallMessageBox then
                                             --keypress also move camera
