@@ -320,6 +320,20 @@ return {
 
                 table.sort(self.zsort, drawSort)
             end,
+            clampCameratoLayer=function(self, layer)
+                --clamps camera to a layer.
+                layer=self.layers[layer]
+                local b=self.sceneImages[layer.image].image
+                self.clamp={x=layer.x, y=layer.y, w=b:getWidth(), h=b:getHeight()}
+            end,
+            --forces the camera to center on an object.
+            centerObject=function(self, objectid)
+                local obj=self.objects[objectid]
+                self:clampCameratoLayer(obj.layer)
+                local layer=self.layers[obj.layer]
+                local center={w=(love.graphics.getWidth()/(self.scale*layer.scale))/2, h=(love.graphics.getWidth()/(self.scale*layer.scale))/2}
+                self:moveCamera(obj.x-center.w, obj.y-center.h)
+            end,
             updateLayer=function(self, layer, dt)
                 local id=layer
                 layer=self.layers[layer]
