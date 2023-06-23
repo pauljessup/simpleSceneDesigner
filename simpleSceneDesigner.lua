@@ -209,7 +209,6 @@ return {
                     local image=""
                     if self.sceneImages[v.image]~=nil then image=self.sceneImages[v.image].name end
                     saveLayerdata[i]={
-                                    activeLayer=self.activeLayer,
                                     x=v.x,
                                     y=v.y,
                                     scale=v.scale,
@@ -221,7 +220,7 @@ return {
                                     reverse=v.reverse }
                 end
                 local saveData={
-                    scene={x=self.x, y=self.y, music=self.music, name=self.name, scale=self.scale},
+                    scene={activeLayer=self.activeLayer, x=self.x, y=self.y, music=self.music, name=self.name, scale=self.scale},
                     layers=saveLayerdata, objects=self.objects,
                 }
                 
@@ -325,7 +324,7 @@ return {
                 if self.layers[layer]~=nil then
                     layer=self.layers[layer]
                     if layer.canvas~=nil then
-                        local edgex, edgey=layer.canvas:getWidth()-love.graphics.getWidth(), layer.canvas:getHeight()-love.graphics.getHeight()
+                        local edgex, edgey=layer.canvas:getWidth()-(love.graphics.getWidth()/self.scale.x), layer.canvas:getHeight()-(love.graphics.getHeight()/self.scale.y)
                         self.clamp={x=0, y=0, w=edgex, h=edgey}
                     end
                 end
