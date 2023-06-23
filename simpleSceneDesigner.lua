@@ -231,6 +231,7 @@ return {
                 self.layers[layer].imageName=img.file
                 self.layers[layer].image=imageID
                 self.layers[layer].canvas=love.graphics.newCanvas(img.image:getWidth(), img.image:getHeight())
+                self:moveLayer(layer, 0, 0)
             end,
             addLayer=function(self, data)
                 if data.scroll==nil then
