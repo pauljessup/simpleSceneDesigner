@@ -321,12 +321,13 @@ return {
                 table.sort(self.zsort, drawSort)
             end,
             clampCameratoLayer=function(self, layer)
-                --clamps camera to a layer.
                 if self.layers[layer]~=nil then
                     layer=self.layers[layer]
                     if layer.canvas~=nil then
-                        local edgex, edgey=layer.canvas:getWidth()-(love.graphics.getWidth()/self.scale.x), layer.canvas:getHeight()-(love.graphics.getHeight()/self.scale.y)
-                        self.clamp={x=0, y=0, w=edgex, h=edgey}
+                        local scale=self.scale.x*layer.scale
+                        local screenEdge={w=(love.graphics.getWidth()/(scale)), h=(love.graphics.getHeight()/(scale))}
+                        local edgew, edgeh=((layer.canvas:getWidth()*scale)+(layer.x*scale))-screenEdge.w/2, ((layer.canvas:getHeight()*scale)+(layer.y*scale))-screenEdge.h/2
+                        self.clamp={x=0, y=0, w=edgew, h=edgeh}
                     end
                 end
             end,
@@ -335,7 +336,7 @@ return {
                 local obj=self.objects[objectid]
                 self:clampCameratoLayer(obj.layer)
                 local layer=self.layers[obj.layer]
-                local center={w=(love.graphics.getWidth()/(self.scale*layer.scale))/2, h=(love.graphics.getWidth()/(self.scale*layer.scale))/2}
+                local center={w=(love.graphics.getWidth()), h=(love.graphics.getWidth())}
                 self:moveCamera(obj.x-center.w, obj.y-center.h)
             end,
             updateLayer=function(self, layer, dt)
@@ -594,7 +595,11 @@ return {
                     if string.find(file, ".scene") then
                         local id=#self.saveImages+1
                         file=file:match("(.+)%..+$")
-                        self.saveImages[id]={name=file .. ".scene", image=love.graphics.newImage(file .. ".png")}
+                        local img=love.graphics.newImage(self.directories.editor .. "/emptyImage.png")
+                        if love.filesystem.getInfo(file .. ".png") then
+                            img=love.graphics.newImage(file .. ".png")
+                        end
+                        self.saveImages[id]={name=file, image=img}
                         self.saveLookup[file .. ".png"]=id
                     end      
                 end
@@ -914,7 +919,7 @@ return {
                         col=1 
                         if love.mouse.isDown(1) and self.cooldown==0.0 then
                             self.cooldown=1.0
-                            self:load(file.name)
+                            self:load(file.name .. ".scene")
                             self.messageBox=false
                             self.editorState=self.oldState
                             self.oldState=nil
@@ -1469,7 +1474,7 @@ return {
                 if self.name=="" then self.name="untitled" end
 
                 self:drawTextButton(self.name, center-((font:getWidth("-" .. self.name .. "-")/2)+6), 20)
-                love.graphics.print("camera: x:" .. self.x .. " y:" .. self.y, center-((font:getWidth("-" .. self.name .. "-")/2)+6), 42)
+                love.graphics.print("camera: x:" .. math.floor(self.x) .. " y:" .. math.floor(self.y), center-((font:getWidth("-" .. self.name .. "-")/2)+6), 42)
 
                 local x=8
                 self:drawTextButton("new", x, 25)
@@ -1614,7 +1619,6 @@ return {
                 self:drawObjectMenu()
             end,
             updateEditor=function(self, dt)
-                    self:clampCameratoLayer(self.activeLayer)
                     if self.cooldown>0.0 then self.cooldown=self.cooldown-0.1 else self.cooldown=0.0 end
                     if not self.messageBox and not self.smallMessageBox then
                                             --keypress also move camera
