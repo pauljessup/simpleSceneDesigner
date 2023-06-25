@@ -233,6 +233,9 @@ return {
                 self.layers[layer].canvas=love.graphics.newCanvas(img.image:getWidth(), img.image:getHeight())
                 self:moveLayer(layer, 0, 0)
             end,
+            --add check here to see if x/y/w/h is obscured by layer over top of it.
+            --if so, returns true, and layer id
+            --if not, just returns false.
             addLayer=function(self, data)
                 if data.scroll==nil then
                     data.scroll={}
