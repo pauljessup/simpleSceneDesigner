@@ -134,8 +134,9 @@ return {
                     if info.draw~=nil then self.customFunc.draw=info.draw end
                     if info.update~=nil then self.customFunc.update=info.update end
                     --layer functions, with similar update/etc. called per layer.
-                    if info.layers~=nil then self.custom.layers=info.layers end
+                    if info.layers~=nil then self.customFunc.layers=info.layers end
                 end
+                simpleScene:newScene({name="", x=0, y=0})
            end,
            setWindowColor=function(self, font, background, border)
                 self.windowColors.background=background
@@ -568,7 +569,7 @@ return {
 
 ------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
             startEditing=function(self) self.editing=true end,
-            endEditing=function(self) self.editing=true end,
+            endEditing=function(self) self.editing=false end,
 
             addObjectType=function(self, type)
                 if type.image~=nil then 
