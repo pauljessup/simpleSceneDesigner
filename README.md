@@ -66,7 +66,7 @@ these object types, and we'll get to that later.
 
 
 # Starting the editor
-Just one function call loads and starts the editor
+Just one function call starts the editor
 
     simpleScene:startEditing()
 
@@ -74,7 +74,7 @@ To leave the editor call
 
     simpleScene:endEditing()
 
-Make sure you have objects defined, as show above
+Make sure you have objects defined, as shown above
 
 # Using a saved scene in a game
 This is also just a simple function call-
