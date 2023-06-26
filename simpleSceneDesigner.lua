@@ -236,7 +236,7 @@ return {
             --add check here to see if x/y/w/h is obscured by layer over top of it.
             --if so, returns true, and layer id
             --if not, just returns false.
-            addLayer=function(self, data)
+            addLayer=function(self, data, layer)
                 if data.scroll==nil then
                     data.scroll={}
                     data.scroll.speed=1.0
@@ -253,8 +253,13 @@ return {
                 if data.visible==nil then data.visible=true end
 
                 data.canvas=love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight())
-                data.id=#self.layers+1
-                self.layers[data.id]=data
+                if layer==nil then 
+                    data.id=#self.layers+1
+                    self.layers[data.id]=data
+                else
+                    data.id=layer+1
+                    table.insert(self.layers, data.id, data)
+                end
                 if data.image and self.imageLookup[data.image]~=nil then
                     self:setBackgroundImage(data.id, self.imageLookup[data.image])
                 end
@@ -1255,7 +1260,7 @@ return {
                         x,y=(love.graphics.getWidth()/self.editorScale.x)-72, 20
                         if self:mouseCollide({x=x, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
                                 self.cooldown=1.0
-                                self:addLayer({x=0, y=0, type="basic"}) 
+                                self:addLayer({x=0, y=0, type="basic"}, self.activeLayer) 
                                 self.activeLayer=self.activeLayer+1
                         end         
                         if self:mouseCollide({x=x+24, y=y, width=24, height=24}, true) and love.mouse.isDown(1) and self.cooldown==0.0 then
