@@ -144,33 +144,36 @@ exactly as is by running the same update code/etc for the game while in the edit
 So, you have a preffered camera system/etc and way of drawing layers, and you don't want to use this one in your game? That's fine! Just don't calle
 simpleScene:update or draw in your game, and after you load the save file, you can get all of the layers and objects with two function calls.
 
-simpleScene:getLayers()
-simpleScene:getObjects()
+    simpleScene:getLayers()
+    simpleScene:getObjects()
 
 You can also get individual layers and objects by calling
-simpleScene:getLayer(layerID)
-simpleScene:getObject(objectID)
+
+    simpleScene:getLayer(layerID)
+    simpleScene:getObject(objectID)
 
 The variables in layer tables are as follows-
-    scale= the amount to scale, x and y are both scaled the same, so it's a singular number.
-    reverse= whether or to reverse how it scales with the camera. Good for fog effects/etc. 
-    alpha= the alpha blending of the layer
-    x, y= the starting x and y offset of the layer
-    visible= if it's visible
-    imageName= the name of the background image to load
-    scroll= a table, with 
-                speed= relative scroll speed to the rest of the layer
-                constant=
-                        a table with
-                        x= boolean for if it's constantly scrolling x
-                        y=boolean for if it's constantly scrolling y
+
+        scale= the amount to scale, x and y are both scaled the same, so it's a singular number.
+        reverse= whether or to reverse how it scales with the camera. Good for fog effects/etc. 
+        alpha= the alpha blending of the layer
+        x, y= the starting x and y offset of the layer
+        visible= if it's visible
+        imageName= the name of the background image to load
+        scroll= a table, with 
+                    speed= relative scroll speed to the rest of the layer
+                    constant=
+                            a table with
+                            x= boolean for if it's constantly scrolling x
+                            y=boolean for if it's constantly scrolling y
 
 The variables in the object tables are as follows:
-    scene= the scene this is in
-    id= the object id
-    image= the image to draw
-    x= x position
-    y= y position
-    layer= the layer it's on
+
+            scene= the scene this is in
+            id= the object id
+            image= the image to draw
+            x= x position
+            y= y position
+            layer= the layer it's on
 
 If you go the route of rolling your own camera/etc for running a scene saved in your game, you will also have to do your own zsorting.
