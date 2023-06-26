@@ -32,13 +32,13 @@ music assets there, if you want.
 
 Next, you'll need to call the update and draw functions like so-
 
-function love.update(dt)
-    simpleScene:update(dt)
-end
+            function love.update(dt)
+                simpleScene:update(dt)
+            end
 
-function love.draw()
-    simpleScene:draw()
-end
+            function love.draw()
+                simpleScene:draw()
+            end
 
 And that's it!
 
