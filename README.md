@@ -5,5 +5,5 @@ for PSX style games. Including the Square Soft RPG's of the 90's (like Final Fan
 Legend of Mana, etc. Also great for making games like Hollow Knight, or point and click adventure games that use hand painted or complex
 pixel art backgrounds.
 
-#how to use
+# how to use
 
