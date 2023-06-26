@@ -450,6 +450,16 @@ return {
                         --draw the grid if in editor and grid is set.
                         if self.editing then
                             if layer.id==self.activeLayer then
+                                if self.useGrid==true  then
+                                    love.graphics.setColor(1, 1, 1, 0.12)
+                                    for x=0, layer.canvas:getWidth(), self.gridSize do
+                                        love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, layer.canvas:getHeight())
+                                    end
+                                    for y=0, layer.canvas:getHeight(), self.gridSize do
+                                        love.graphics.line((-self.x), (-self.y)+y, layer.canvas:getWidth(), (-self.y)+y)
+                                    end
+                                    love.graphics.setColor(1, 1, 1, 1)
+                                end
                                 self:mouseDrop()
                             end
                         end
@@ -549,18 +559,6 @@ return {
                 end
 
                 if self.editing==true then 
-                --[[
-                    if self.useGrid==true then
-                        love.graphics.setColor(1, 1, 1, 0.12)
-                        for x=0, self.size.width, self.gridSize*self.scale.x do
-                            love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, love.graphics.getHeight())
-                        end
-                        for y=0, self.size.width, self.gridSize*self.scale.y do
-                            love.graphics.line((-self.x), (-self.y)+y, love.graphics.getWidth(), (-self.y)+y)
-                        end
-                        love.graphics.setColor(1, 1, 1, 1)
-                    end
-                ]]
                     self:drawEditor() 
                     love.graphics.draw(self.canvas, 0, 0, 0, self.editorScale.x, self.editorScale.y)
                 end
