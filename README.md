@@ -57,6 +57,7 @@ The "objects" in the game are just anything you place on a layer that's not a ba
 and positioned relative to the layer. Each object needs to be prepared ahead of time, before calling the editor or using it in a game.
 
 It's just a simple function call-
+    
     simpleScene:addObjectType({type="tree", image="tree.png"})
 
 What's passed is a table, containing the type name for future reference, and an image to use when drawing/placing the object. There is more you can do with 
@@ -66,16 +67,19 @@ these object types, and we'll get to that later.
 
 # Starting the editor
 Just one function call loads and starts the editor
-simpleScene:startEditing()
+
+    simpleScene:startEditing()
 
 To leave the editor call
-simpleScene:endEditing()
+
+    simpleScene:endEditing()
 
 Make sure you have objects defined, as show above
 
 # Using a saved scene in a game
 This is also just a simple function call-
-simpleScene:load("myScene.scene")
+
+    simpleScene:load("myScene.scene")
 
 Where "myScene.scene" is the name of the scene you wish to load. Now, you may be asking yourself "well, how do I animate the objects? do collision detection? etc?"
 
