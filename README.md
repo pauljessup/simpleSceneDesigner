@@ -7,12 +7,14 @@ pixel art backgrounds.
 
 # Basic Usage
 Including the library is as easy as
-simpleScene=require("simpleSceneDesigner")
+
+    simpleScene=require("simpleSceneDesigner")
 
 You can change the fonts and the screen resolution as you normally would in LÖVE. The windowing system and buttons automatically resize
 to take advantage of the new size and dimensions. This makes it easy to support complex scenes in any resolution without issue.
 
 You will need to init the library in function love.load(), like so-
+
     simpleScene:init({directories={editor="editorAssets"}})
 
 Here, you include the directories you want to use. As you can see, the editor assets (which is necassary for using the editor) are
