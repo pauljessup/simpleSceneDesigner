@@ -43,7 +43,7 @@ Next, you'll need to call the update and draw functions like so-
 And that's it!
 
 # Terms and concepts
-This is a basica level designer. All levels are constructed as "scenes". Each scene has it's own scaling amount, name, camera, and background music
+This is a basic level designer. All levels are constructed as "scenes". Each scene has it's own scaling amount, name, camera, and background music
 (if you wish to set any background music). These scenes are made up of layers and objects.
 
 A layer can be scaled, has objects walking on it, and a background image that acts as the layer's background. You can also set scroll speeds to have it
