@@ -9,7 +9,6 @@ function love.load()
     --we set the editor asset directory to be editorAssets
     simpleScene:init({directories={editor="editorAssets"}})
 
-    simpleScene:newScene({name="", x=0, y=0})
     simpleScene:startEditing()
 end
 
