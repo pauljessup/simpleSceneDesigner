@@ -177,3 +177,33 @@ The variables in the object tables are as follows:
             layer= the layer it's on
 
 If you go the route of rolling your own camera/etc for running a scene saved in your game, you will also have to do your own zsorting.
+
+
+# Using the Scene Designer
+
+There are three tabs at the top- Objects, Layers, and Scenes. 
+
+- scenes
+In Scenes you can change the name by clicking on the name, create a new scene from scratch, load an existing scene, or save the current scene. You
+can also move the scene camera using the scene camer button, click on the musical note to add in background music, and play the background music as you
+edit the scene. You can also scale the scene camera, this will be the base scaling for the scene, that all the other layers are scaled in relation to.
+
+This is usefull for retro games esp, when you want to scale by 3 or 4 to give it that pixelly retro look. All other layer scaling will be relative to this.
+
+- layers
+Layers are basically containers that have a background image (usually a png), and can have objects placed on top of them. They have their own scaling, x and y placement, alpha blending level, and scroll speed. To change the layer image click on the set background button. To tile the layer (for fog effects/etc), click on
+the tiled button. To reposition the layer so that it's in a relative position to the main scene camera, click on the reposition button. This changes the layer's x and y positionm. Each layer has it's own seperate x and y, which can also be access in update functions. All objects placed on a layer's x and y are relative to the layer's x and y, and move with the layer.
+
+You can also set a constant scroll value for the layer fo fog or water effects, you can also make it invisible, or reverse the relative scrolling to the main camera. You can add new layers here, as well as remove the current layer. When a new layer is added, it's added directly above the current layer. You can move up and down the layers by pressing the up and down layer buttons.
+
+- objects
+The objecs on the objects tab here have to be set up ahead of time. See the objects section above on how to do that. Place an object, either click on the object to place, or click on the object place button and then click on the object to place. Then simply place it on the map. To delete objects, click on the delete object button, and then click on the objects you want to delete. You can move already placed objects by clicking on the move object button and then dragging and dropping the objects to new locations.
+
+You can also use a grid to place objects on the layer. This allows for a less fine tuned approach, but has some advantages. The default grid is 8x8, but you can set the grid size programmatically with
+
+    sceneDesigner.gridSize=16
+
+which would set it to 16x16.
+
+
+
