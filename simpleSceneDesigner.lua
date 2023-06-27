@@ -329,25 +329,6 @@ return {
 
                 table.sort(self.zsort, drawSort)
             end,
-            clampCameratoLayer=function(self, layer)
-                if self.layers[layer]~=nil then
-                    layer=self.layers[layer]
-                    if layer.canvas~=nil then
-                        local scale=self.scale.x*layer.scale
-                        local screenEdge={w=(love.graphics.getWidth()/(scale)), h=(love.graphics.getHeight()/(scale))}
-                        local edgew, edgeh=((layer.canvas:getWidth()*scale)+(layer.x*scale))-screenEdge.w/2, ((layer.canvas:getHeight()*scale)+(layer.y*scale))-screenEdge.h/2
-                        self.clamp={x=0, y=0, w=edgew, h=edgeh}
-                    end
-                end
-            end,
-            --forces the camera to center on an object.
-            centerObject=function(self, objectid)
-                local obj=self.objects[objectid]
-                self:clampCameratoLayer(obj.layer)
-                local layer=self.layers[obj.layer]
-                local center={w=(love.graphics.getWidth()), h=(love.graphics.getWidth())}
-                self:moveCamera(obj.x-center.w, obj.y-center.h)
-            end,
             updateLayer=function(self, layer, dt)
                 local id=layer
                 layer=self.layers[layer]
@@ -491,13 +472,6 @@ return {
                     self.x=self.x-x
                     self.y=self.y-y
 
-                    if self.clamp~=nil then 
-                        if self.x<self.clamp.x then self.x=self.clamp.x x=0 end
-                        if self.y<self.clamp.y then self.y=self.clamp.y y=0 end
-                        if self.x>self.clamp.w then self.x=self.clamp.w x=0 end
-                        if self.y>self.clamp.h then self.y=self.clamp.h y=0 end
-                    end
-
                     for i,v in ipairs(self.layers) do
                         local lx, ly=x, y 
                         if v.scroll.constant.x==true then lx=0 end 
@@ -548,6 +522,15 @@ return {
 
                 layer.x=layer.x+(move.x)
                 layer.y=layer.y+(move.y)
+            end,
+            --loop plays the music set for this scene.
+            playMusic=function(self)
+                self:stopAllMusic()
+                if self.music~=nil and self.music.music~=nil and self.sceneMusic[self.music.music]~=nil then
+                    self.sceneMusic[self.music.music].music:setLooping(true)
+                    self.sceneMusic[self.music.music].music:play()
+                    self.playing=true
+                end
             end,
             draw=function(self, x, y)
                 if x==nil then x=self.x end
@@ -1450,9 +1433,7 @@ return {
                                 if not self.playing then
                                    if (self:mouseCollide({x=x, y=25, width=24, height=24}, true))  and love.mouse.isDown(1) and self.cooldown==0.0 then
                                         self.cooldown=1.0
-                                        self.sceneMusic[self.music.music].music:setLooping(true)
-                                        self.sceneMusic[self.music.music].music:play()
-                                        self.playing=true
+                                        self:playMusic()
                                    end
                                 else
                                     if (self:mouseCollide({x=x, y=25, width=24, height=24}, true))  and love.mouse.isDown(1) and self.cooldown==0.0 then
