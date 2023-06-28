@@ -445,6 +445,7 @@ return {
                             end
                         end
                         self:drawObjects(layer.id) 
+                        --love.graphics.print(((self.y-layer.y)-layer.y)*(layer.scale), 200, 100)
                         love.graphics.setCanvas()
 
                         love.graphics.setColor(c[1], c[2], c[3], layer.alpha)
@@ -480,7 +481,21 @@ return {
                     end
                 end
             end,
+            cameraFollowObject=function(self, obj)
+                if type(obj)=="number" then obj=self.objects[obj] end
+                local x, y=simpleScene:layertoScreen(obj.layer, obj.x, obj.y)
+                local layer=self.layers[obj.layer]
+                local scale=(self.scale.x*layer.scale)
+                local center={x=(love.graphics.getWidth()/2)+((obj.width)*scale), y=(love.graphics.getHeight()/2)}
+                local offsets={x=(layer.x*scale)+(self.x*self.scale.x), y=(layer.y*scale)+(self.y*self.scale.y)}
+                local edges={x=center.x, y=center.y-layer.y, w=(layer.canvas:getWidth())+(center.x), h=(layer.canvas:getHeight()*scale)-center.y}
+                local mx, my=0,0
+                if (x>edges.x and x<(edges.w))  then mx=obj.moveX end
+                --y isn't quite right.
+                if (y>edges.y and y<(edges.h))  then my=obj.moveY end
 
+                simpleScene:moveCamera(mx, my)
+            end,
             sceneToScreen=function(self, x, y)
                 x=x+self.x
                 y=y+self.y
@@ -496,6 +511,7 @@ return {
                 return x, y
             end,
             screenToLayer=function(self, layer, x, y)
+                --this is wrong, fi xit.
                 local l=self.layers[layer]
                 local scale=self.scale.x*l.scale
                 local ox, oy=l.x*scale, l.y*scale
@@ -505,12 +521,31 @@ return {
                 return x, y     
             end,
             layertoScreen=function(self, layer, x, y)
+                --this is correct.
                 local l=self.layers[layer]
-                local scale=self.scale.x/l.scale
-                local ox, oy=l.x/scale, l.y/scale
-                x=(x/scale)+ox
-                y=(y/scale)+oy
+                local scale=self.scale.x*l.scale
+                x=x-l.x 
+                y=y-l.y 
+                x=x*scale 
+                y=y*scale
                 return x, y
+            end,
+            --amount to move.
+            moveObject=function(self, obj, x, y)
+                local layer=self.layers[obj.layer]
+                local tx=obj.x+x 
+                local ty=obj.y+y
+
+                obj.moveX=nil 
+                obj.moveY=nil
+                if tx>0 and tx+obj.width<layer.canvas:getWidth() then 
+                    obj.moveX=x
+                    obj.x=tx 
+                end
+                if ty>0 and ty+obj.height<layer.canvas:getHeight() then 
+                    obj.moveY=y
+                    obj.y=ty
+                end
             end,
             moveLayer=function(self, layer, x, y)
                 local layer=self.layers[layer]
@@ -519,7 +554,7 @@ return {
                     move.x=move.x*-1
                     move.y=move.y*-1
                 end
-
+ 
                 layer.x=layer.x+(move.x)
                 layer.y=layer.y+(move.y)
             end,
@@ -1622,7 +1657,7 @@ return {
                                         local mx, my=self:scaleMousePosition(true)
 
                                         --move layer if that's the tool
-                                        if self.editState=="move layer" and love.mouse.isDown(1) then
+                                        if self.editState=="move layer" and love.mouse.isDown(1) and self.cooldown==0.0 then
                                             local mx, my=self:scaleMousePosition(false)
                                             if self.last==nil then self.last={x=mx, y=my} end
                                             self:moveLayer(self.activeLayer, mx-self.last.x, my-self.last.y)
@@ -1634,7 +1669,7 @@ return {
 
                                         --move camera if that's the tool
                                         
-                                        if self.editState=="move camera" and love.mouse.isDown(1) then
+                                        if self.editState=="move camera" and love.mouse.isDown(1) and self.cooldown==0.0 then
                                             local mx, my=self:scaleMousePosition(false)
                                             if self.last2==nil then self.last2={x=mx, y=my} end
                                             self:moveCamera((mx-self.last2.x)*-1, (my-self.last2.y)*-1)
