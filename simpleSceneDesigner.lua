@@ -434,10 +434,10 @@ return {
                                 if self.useGrid==true  then
                                     love.graphics.setColor(1, 1, 1, 0.12)
                                     for x=0, layer.canvas:getWidth(), self.gridSize do
-                                        love.graphics.line((-self.x)+x, -self.y, (-self.x)+x, layer.canvas:getHeight())
+                                        love.graphics.line(x, 0, x, layer.canvas:getHeight())
                                     end
                                     for y=0, layer.canvas:getHeight(), self.gridSize do
-                                        love.graphics.line((-self.x), (-self.y)+y, layer.canvas:getWidth(), (-self.y)+y)
+                                        love.graphics.line(0, y, layer.canvas:getWidth(), y)
                                     end
                                     love.graphics.setColor(1, 1, 1, 1)
                                 end
