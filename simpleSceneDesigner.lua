@@ -485,10 +485,11 @@ return {
                 if type(obj)=="number" then obj=self.objects[obj] end
                 local x, y=simpleScene:layertoScreen(obj.layer, obj.x, obj.y)
                 local layer=self.layers[obj.layer]
+                local ox, oy=simpleScene:layertoScreen(obj.layer, layer.x, layer.y)
                 local scale=(self.scale.x*layer.scale)
                 local center={x=(love.graphics.getWidth()/2)+((obj.width)*scale), y=(love.graphics.getHeight()/2)}
-                local offsets={x=(layer.x*scale)+(self.x*self.scale.x), y=(layer.y*scale)+(self.y*self.scale.y)}
-                local edges={x=center.x, y=center.y-layer.y, w=(layer.canvas:getWidth())+(center.x), h=(layer.canvas:getHeight()*scale)-center.y}
+                
+                local edges={x=ox+center.x, y=oy+center.y, w=(ox+layer.canvas:getWidth())+(center.x), h=(oy+layer.canvas:getHeight())+center.y}
                 local mx, my=0,0
                 if (x>edges.x and x<(edges.w))  then mx=obj.moveX end
                 --y isn't quite right.
