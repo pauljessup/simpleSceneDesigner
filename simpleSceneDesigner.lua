@@ -467,16 +467,8 @@ return {
             --relative movement.
             moveCamera=function(self, x, y)
                 if self.cooldown==0.0 then
-                    self.x=self.x+x
-                    self.y=self.y+y
---[[--
-                    for i,v in ipairs(self.layers) do
-                        local lx, ly=x, y 
-                        if v.scroll.constant.x==true then lx=0 end 
-                        if v.scroll.constant.y==true then ly=0 end
-                        self:moveLayer(i, lx, ly)
-                    end
-]]
+                    self.x=math.floor(self.x+x)
+                    self.y=math.floor(self.y+y)
                 end
 
             end,
@@ -493,7 +485,10 @@ return {
             end,
             cameraFollowObject=function(self, obj)
                 if type(obj)=="number" then obj=self.objects[obj] end
-                simpleScene:placeCamera(obj.x, obj.y)
+                local layer=self.layers[obj.layer]
+                local center={x=(love.graphics.getWidth()/(self.scale.x*layer.scale))/2, y=(love.graphics.getHeight()/(self.scale.y*layer.scale))/2}
+                --after you scale, center doesn't work anymore, fix it somehow.
+                simpleScene:placeCamera((((obj.x+(obj.width/2))-center.x)+layer.x)*(self.scale.x*layer.scale), (((obj.y+obj.height/2)-center.y)+layer.y)*(self.scale.y*layer.scale))
             end,
             sceneToScreen=function(self, x, y)
                 x=x+self.x
@@ -1527,9 +1522,6 @@ return {
                 --parallax: x speed, yspeed  constant or relative
                 local font=love.graphics.getFont()
 
-                --local layerPosText="layer offset: x:" .. math.floor((self.layers[self.activeLayer].x/self.scale.x)-(self.x/self.scale.x)) .. " y:" .. math.floor((self.layers[self.activeLayer].y/self.scale.y)-(self.y/self.scale.y))
-                --love.graphics.print(layerPosText, (((love.graphics.getWidth()/self.editorScale.x)/2)-(font:getWidth(layerPosText)/2)), 20)
-
                 local totalText="layer: " .. self.activeLayer .. " of " .. #self.layers
                 love.graphics.print(totalText, 8, 20)                
                 local x,y=8, 23+font:getHeight()
@@ -1619,7 +1611,6 @@ return {
                     --if object image is larger than window, scale to fit.
                     local scale=1
                     if obj.width>obj.height then scale=objButtonSize/obj.width else scale=objButtonSize/obj.height end
-                    --if scale>1 then scale=math.floor(scale) end 
 
                     love.graphics.setColor(0.5, 0.5, 0.5, 1) 
                     --if mouse isn't over the object type, brighten it
