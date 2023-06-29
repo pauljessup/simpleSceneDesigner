@@ -199,7 +199,10 @@ return {
                 data=data[1]
                 --this needs to be done differently for layers because of images
                 self:newScene(data.scene, true)
-                self.objects=data.objects
+                --self.objects=data.objects
+                for i,v in ipairs(data.objects) do
+                    self:addObject(v)
+                end
                 for i,v in ipairs(data.layers) do
                     self:addLayer(v)
                 end
@@ -220,9 +223,22 @@ return {
                                     visible=v.visible,
                                     reverse=v.reverse }
                 end
+                local objects={}
+                for i,v in ipairs(self.objects) do
+                    objects[i]={
+                                    x=v.x,
+                                    y=v.y,
+                                    layer=v.layer,
+                                    type=v.type,
+                                    width=v.width,
+                                    height=v.height,
+                                    id=v.id,
+                                    scene=v.scene,
+                    }
+                end
                 local saveData={
                     scene={activeLayer=self.activeLayer, x=self.x, y=self.y, music=self.music, name=self.name, scale=self.scale},
-                    layers=saveLayerdata, objects=self.objects,
+                    layers=saveLayerdata, objects=objects,
                 }
                 
                 self.binser.writeFile(self.path .. "/" .. self.directories.scenes .. "/" .. self.name .. ".scene", saveData)
@@ -277,8 +293,9 @@ return {
                 data.id=#self.objects+1
                 data.scene=self.name
                 self.objects[data.id]=data
+                
                 --if an init function is set in the object's template, use it.
-                if self.objectTypes[data.type].init then self.objectTypes[data.type]:init(self.objects[data.id], self) end
+                if self.objectTypes[data.type].init then  self.objectTypes[data.type]:init(self.objects[data.id], self) end
             end,
             changeObjectLayer=function(self, object, newLayer)
                 if self.layers[newLayer]==nil then error("Tried to move object to layer #" .. newLayer ..",  but layer does not exist.") end
