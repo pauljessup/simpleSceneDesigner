@@ -1108,11 +1108,7 @@ return {
                         local layer=self.layers[self.activeLayer]
                         mx=mx-layer.x
                         my=my-layer.y
-                        if obj.draw~=nil then 
-                            obj:draw({x=mx-(obj.width/2), y=my-(obj.height/2)}, self)
-                        else
-                            love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
-                        end
+                        love.graphics.draw(obj.image, mx-(obj.width/2), my-(obj.height/2))
                         love.graphics.setColor(1, 1, 1, 1)
                     end
                 end
