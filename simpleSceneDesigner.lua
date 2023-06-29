@@ -453,7 +453,9 @@ return {
                                 local quad = love.graphics.newQuad(-layer.x*(self.scale.x*layer.scale), -layer.y*(self.scale.y*layer.scale), love.graphics.getWidth(), love.graphics.getHeight(), self.sceneImages[layer.image].image:getWidth(), self.sceneImages[layer.image].image:getHeight())	
                                 love.graphics.draw(layer.canvas, quad, 0, 0, 0, (self.scale.x*layer.scale), (self.scale.y*layer.scale))
                         else
-                            love.graphics.draw(layer.canvas, (self.x*-1)+(layer.x*(self.scale.x*layer.scale)), (self.y*-1)+(layer.y*(self.scale.y*layer.scale)), 0, self.scale.x*layer.scale, self.scale.y*layer.scale)
+                            local x, y=(layer.scroll.speed*layer.scale)*self.x, (layer.scroll.speed*layer.scale)*self.y
+                            love.graphics.draw(layer.canvas, (x*-1)+(layer.x*(self.scale.x*layer.scale)), (y*-1)+(layer.y*(self.scale.y*layer.scale)), 0, self.scale.x*layer.scale, self.scale.y*layer.scale)
+
                         end
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
                 end
@@ -470,24 +472,24 @@ return {
                     self.x=math.floor(self.x+x)
                     self.y=math.floor(self.y+y)
                 end
-
             end,
             
             cameraClampLayer=function(self, layer)
                 local layer=self.layers[layer]
                 local scale=(layer.scale*self.scale.x)
-                local screen={w=(love.graphics.getWidth()/scale)-layer.canvas:getWidth(), h=(love.graphics.getHeight()/scale)-layer.canvas:getHeight()}
+                local screen={x=(love.graphics.getWidth()/scale), y=(love.graphics.getHeight()/scale)}
+                local edges={x=layer.x*scale, y=(layer.y-scale)*scale, w=screen.x-(layer.canvas:getWidth()/scale), h=screen.y-(layer.canvas:getHeight()/scale)}
 
-                if (layer.x*-1)<0 then layer.x=0 end
-                if layer.x<screen.w then layer.x=screen.w end
-                if (layer.y*-1)<0 then layer.y=0 end
-                if layer.y<screen.h then layer.y=screen.h end
+                if self.x<edges.x then self.x=edges.x end
+                if self.y<edges.y then self.y=edges.y end
+                if self.x>edges.x+edges.w then self.x=edges.x+edges.w end
+                if self.y>edges.y+edges.h then self.y=edges.y+edges.h end
             end,
             cameraFollowObject=function(self, obj)
                 if type(obj)=="number" then obj=self.objects[obj] end
                 local layer=self.layers[obj.layer]
                 local center={x=(love.graphics.getWidth()/(self.scale.x*layer.scale))/2, y=(love.graphics.getHeight()/(self.scale.y*layer.scale))/2}
-                --after you scale, center doesn't work anymore, fix it somehow.
+
                 simpleScene:placeCamera((((obj.x+(obj.width/2))-center.x)+layer.x)*(self.scale.x*layer.scale), (((obj.y+obj.height/2)-center.y)+layer.y)*(self.scale.y*layer.scale))
             end,
             sceneToScreen=function(self, x, y)
