@@ -192,14 +192,9 @@ return {
                 for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
             end,
             load=function(self, name)
-                --this needs to change, a lot. For loading layers, for loading objects, for loading scenes/etc
-                --also, need to add a selection window that runs through the screenshots in save folder,
-                --and uses that to list the loadable scenes you can click on. When clicked on, it loads the binser file.
                 local data, len=self.binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
                 data=data[1]
-                --this needs to be done differently for layers because of images
                 self:newScene(data.scene, true)
-                --self.objects=data.objects
                 for i,v in ipairs(data.objects) do
                     self:addObject(v)
                 end
@@ -472,7 +467,6 @@ return {
                         else
                             local x, y=(layer.scroll.speed*layer.scale)*self.x, (layer.scroll.speed*layer.scale)*self.y
                             love.graphics.draw(layer.canvas, (x*-1)+(layer.x*(self.scale.x*layer.scale)), (y*-1)+(layer.y*(self.scale.y*layer.scale)), 0, self.scale.x*layer.scale, self.scale.y*layer.scale)
-
                         end
                         love.graphics.setColor(c[1], c[2], c[3], c[4])
                 end
