@@ -192,6 +192,7 @@ return {
                 for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
             end,
             load=function(self, name)
+                --and uses that to list the loadable scenes you can click on. When clicked on, it loads the binser file.
                 local data, len=self.binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
                 data=data[1]
                 self:newScene(data.scene, true)
