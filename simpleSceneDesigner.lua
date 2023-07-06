@@ -192,10 +192,14 @@ return {
                 for i=#self.objects, -1 do self.objects[i]=nil end self.objects={}
             end,
             load=function(self, name)
+                --this needs to change, a lot. For loading layers, for loading objects, for loading scenes/etc
+                --also, need to add a selection window that runs through the screenshots in save folder,
                 --and uses that to list the loadable scenes you can click on. When clicked on, it loads the binser file.
                 local data, len=self.binser.readFile(self.path .. "/" .. self.directories.scenes .. "/" .. name)
                 data=data[1]
+                --this needs to be done differently for layers because of images
                 self:newScene(data.scene, true)
+                --self.objects=data.objects
                 for i,v in ipairs(data.objects) do
                     self:addObject(v)
                 end
@@ -529,10 +533,11 @@ return {
                 return x, y     
             end,
             layertoScreen=function(self, layer, x, y)
-                local layer=self.layers[layer]
-                local scale=(self.scale.x*layer.scale)
-                x=(x*scale)+(layer.x*scale)
-                y=(y*scale)+(layer.y*scale)
+                if self.layers[layer]~=nil then layer=self.layers[layer] end
+                local ox, oy=(layer.scroll.speed*layer.scale)*self.x, (layer.scroll.speed*layer.scale)*self.y
+                x=(ox*-1)+(x*(self.scale.x*layer.scale))+(layer.x)*(self.scale.x*layer.scale)
+                y=(oy*-1)+(y*(self.scale.x*layer.scale))+(layer.y)*(self.scale.y*layer.scale)
+                
                 return x, y
             end,
             --amount to move.
@@ -587,11 +592,6 @@ return {
                 end
                 if self.customFunc.draw~=nil then self.customFunc.draw(self) end
             end,
-
-------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
-            startEditing=function(self) self.editing=true end,
-            endEditing=function(self) self.editing=false end,
-
             addObjectType=function(self, type)
                 if type.image~=nil then 
                     type.imageName=type.image
@@ -603,6 +603,10 @@ return {
                 self.objectTypes[type.type]=type
                 self.editorObject[#self.editorObject+1]=type.type
             end,
+            
+------------------------------------------------------------------------EDITOR FUNCTIONALITY----------------------------------------------------
+            startEditing=function(self) self.editing=true end,
+            endEditing=function(self) self.editing=false end,
 
             scaleMousePosition=function(self, editor)
                 local l=self.layers[self.activeLayer]
