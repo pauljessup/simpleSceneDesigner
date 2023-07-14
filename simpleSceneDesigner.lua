@@ -337,10 +337,8 @@ return {
                 --zsorting...
                 for i=#self.zsort, -1 do self.zsort=nil end 
                 self.zsort={}
-                local onscreen=self:allObjectsOnScreen()
                 for i,v in ipairs(self.objects) do
-                    --check if object is on the screen. if not, don't draw.      
-                    if onscreen[i]==true then self.zsort[#self.zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width} end
+                    self.zsort[#self.zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
                 end
 
                 --run custom functions.
@@ -550,6 +548,8 @@ return {
                 if y<0 then y=y*-1 end 
                 return {x=x, y=y, w=w, h=h}
             end,
+            --this gets a list of object id for every object visible on the screen.
+            --good for things like speeding up collision detection & layer drawing.
             allObjectsOnScreen=function(self, layer)
                 local objs={}
                 local screen=self:layerOnscreen(layer)
@@ -565,7 +565,7 @@ return {
                 if screen==nil then 
                     local x, y=self:layertoScreen(obj.layer, obj.x, obj.y)
                     local layer=self.layers[obj.layer]
-                    if x>0 and y>0 and x+(obj.width*(layer.scale*self.scale.x))<love.graphics.getWidth() and y+(obj.height*(layer.scale*self.scale.y))<love.graphics.getHeight() then return true end                    
+                    if x>-(100*layer.scale*self.scale.x) and y>-(100*layer.scale*self.scale.y) and x+(obj.width*(layer.scale*self.scale.x))<(love.graphics.getWidth()+(100*layer.scale*self.scale.x)) and y+(obj.height*(layer.scale*self.scale.y))<(love.graphics.getHeight()+(100*layer.scale*self.scale.x)) then return true end                    
                 else
                     if obj.x>screen.x and obj.y>screen.y and (obj.x+obj.width)<screen.w and(obj.y+obj.height)<screen.h then return true end
                 end
@@ -576,7 +576,6 @@ return {
                 local ox, oy=(layer.scroll.speed*layer.scale)*self.x, (layer.scroll.speed*layer.scale)*self.y
                 x=(ox*-1)+(x*(self.scale.x*layer.scale))+(layer.x)*(self.scale.x*layer.scale)
                 y=(oy*-1)+(y*(self.scale.x*layer.scale))+(layer.y)*(self.scale.y*layer.scale)
-                
                 return x, y
             end,
             --amount to move.
@@ -1717,7 +1716,7 @@ return {
                                         if self.editState=="move camera" and love.mouse.isDown(1) and self.cooldown==0.0 then
                                             local mx, my=self:scaleMousePosition(false)
                                             if self.last2==nil then self.last2={x=mx, y=my} end
-                                            self:moveCamera((mx-self.last2.x)*-1, (my-self.last2.y)*-1)
+                                            self:moveCamera((mx-self.last2.x)*-2, (my-self.last2.y)*-2)
                                             self.last2.x=mx
                                             self.last2.y=my
                                         else
@@ -1735,15 +1734,23 @@ return {
                                                     mx, my=self:scaleMousePosition(false)
                                                     self.cooldown=1.0
                                                     if self.useGrid then 
+                                                        self.cooldown=0.0
                                                         mx=self.gridSize*(math.floor(mx/self.gridSize)) 
                                                         my=self.gridSize*(math.floor(my/self.gridSize)) 
                                                     end
                                                     --adjust based on layer offset and scene camera offset)
                                                     local layer=self.layers[self.activeLayer]
-                                                    local mx=mx-layer.x
-                                                    local my=my-layer.y
-                                                    
-                                                    self:addObject({type=type, layer=self.activeLayer, x=mx-(obj.width/2), y=my-(obj.height/2)})
+                                                    local mx=(mx-layer.x)-(obj.width/2)
+                                                    local my=(my-layer.y)-(obj.height/2)
+                                                    local tplace=true
+                                                    --check to see if an object is already there, and if so, don't put anything down.
+                                                    for i,v in ipairs(self.objects) do
+                                                        if v.layer==self.activeLayer and mx==v.x and my==v.y then
+                                                            tplace=false 
+                                                            break
+                                                        end
+                                                    end
+                                                    if tplace then self:addObject({type=type, layer=self.activeLayer, x=mx, y=my}) end
                                                 end
                                             end
                                         end
