@@ -50,6 +50,7 @@ return {
             saveImages={},
             saveLookup={},
             cooldown=0.0, --so mousepresses don't repeat a ton.
+            mousePressed=false, --for singular mouse presses, like placing new objects.
             --this allows us to search for background images, or to load scenes.
             --default is parent directory.
             directories={scenes="", layers="", editor="", sprites="", music=""},
@@ -1724,7 +1725,7 @@ return {
                                         end
 
                                         --drop an object on the map
-                                        if love.mouse.isDown(1) and self.cooldown==0.0 then
+                                        if love.mouse.isDown(1) and not self.mousePressed then
                                             if self.dropObject~=nil and self.editState=="drop" then
                                                 local type=self.editorObject[self.dropObject]
                                                 local obj=self.objectTypes[type]
@@ -1732,11 +1733,11 @@ return {
                                                 if self.topMenuHide==true then windowH=16 end
                                                 if my>(windowH+16) then
                                                     mx, my=self:scaleMousePosition(false)
-                                                    self.cooldown=1.0
                                                     if self.useGrid then 
-                                                        self.cooldown=0.0
                                                         mx=self.gridSize*(math.floor(mx/self.gridSize)) 
                                                         my=self.gridSize*(math.floor(my/self.gridSize)) 
+                                                    else
+                                                        self.mousePressed=true
                                                     end
                                                     --adjust based on layer offset and scene camera offset)
                                                     local layer=self.layers[self.activeLayer]
@@ -1801,5 +1802,6 @@ return {
                                 self:updateSmallMsgBox()
                             end
                         end
+                        if not love.mouse.isDown(1) then self.mousePressed=false end
             end,
 }
