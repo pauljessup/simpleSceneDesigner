@@ -295,6 +295,8 @@ return {
                 data.scene=self.name
                 self.objects[data.id]=data
                 
+                self.zsort[#self.zsort+1]={id=data.id, x=data.x, y=data.y, w=data.width, h=data.height}
+
                 --if an init function is set in the object's template, use it.
                 if self.objectTypes[data.type].init then  self.objectTypes[data.type]:init(self.objects[data.id], self) end
             end,
@@ -336,10 +338,9 @@ return {
                     if type.update~=nil and self.editing==false then type:update(object, self, dt) end                    
                 end
                 --zsorting...
-                for i=#self.zsort, -1 do self.zsort=nil end 
-                self.zsort={}
-                for i,v in ipairs(self.objects) do
-                    self.zsort[#self.zsort+1]={id=i, x=v.x, y=v.y, h=v.height, w=v.width}
+                for i,v in ipairs(self.zsort) do
+                    local data=self.objects[v.id]
+                    self.zsort[i]={id=v.id, x=data.x, y=data.y, w=data.width, h=data.height}
                 end
 
                 --run custom functions.
