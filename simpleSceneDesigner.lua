@@ -343,7 +343,7 @@ return {
                     if data~=nil then
                         self.zsort[i]={id=v.id, x=data.x, y=data.y, w=data.width, h=data.height}
                     else
-                        table.remove(zsort, i)
+                        table.remove(self.zsort, i)
                     end
                 end
 
