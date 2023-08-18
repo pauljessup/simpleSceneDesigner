@@ -340,7 +340,11 @@ return {
                 --zsorting...
                 for i,v in ipairs(self.zsort) do
                     local data=self.objects[v.id]
-                    self.zsort[i]={id=v.id, x=data.x, y=data.y, w=data.width, h=data.height}
+                    if data~=nil then
+                        self.zsort[i]={id=v.id, x=data.x, y=data.y, w=data.width, h=data.height}
+                    else
+                        table.remove(zsort, i)
+                    end
                 end
 
                 --run custom functions.
